@@ -94,7 +94,7 @@ func calcEntropy(line string) float64 {
 
 // readAndCalc reads lines from a file and returns those
 // that pass the provided filter
-func readAndCalc(filename string, filter LineFilter) ([]CodeLine, error) {
+func readAndCalc(filename string, filter LineFilter, collection []CodeLine) ([]CodeLine, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,6 @@ func readAndCalc(filename string, filter LineFilter) ([]CodeLine, error) {
 
 	scanner := bufio.NewScanner(f)
 	currIndex := 0
-	var collection []CodeLine
 
 	for scanner.Scan() {
 		currIndex++
@@ -128,9 +127,9 @@ func main() {
 	filter := allFilters(
 		entropyFilter(5.0),
 	)
-
+	var buf []CodeLine
 	// Run on file
-	results, err := readAndCalc("/home/holyknight101/Documents/Projects/Personal/exp_site/main.py", filter)
+	results, err := readAndCalc("/home/holyknight101/Documents/Projects/Personal/exp_site/main.py", filter, buf)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
