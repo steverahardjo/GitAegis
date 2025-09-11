@@ -1,8 +1,11 @@
 package main
 
+// ------------------------------------
+// entro_parser.go
+// --------------------
+
 import (
 	"bufio"
-	"fmt"
 	"math"
 	"os"
 	"regexp"
@@ -94,7 +97,8 @@ func calcEntropy(line string) float64 {
 
 // readAndCalc reads lines from a file and returns those
 // that pass the provided filter
-func readAndCalc(filename string, filter LineFilter, collection []CodeLine) ([]CodeLine, error) {
+func readAndCalc(filename string, filter LineFilter) ([]CodeLine, error) {
+	var collection = []CodeLine{}
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -116,27 +120,4 @@ func readAndCalc(filename string, filter LineFilter, collection []CodeLine) ([]C
 		return nil, err
 	}
 	return collection, nil
-}
-
-// --------------------
-// Main
-// --------------------
-
-func main() {
-	// Build composed filter (entropy + regex)
-	filter := allFilters(
-		entropyFilter(5.0),
-	)
-	var buf []CodeLine
-	// Run on file
-	results, err := readAndCalc("/home/holyknight101/Documents/Projects/Personal/exp_site/main.py", filter, buf)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	// Print results
-	for _, line := range results {
-		fmt.Printf("Line %d (entropy=%.3f): %s\n", line.index, calcEntropy(line.line), line.line)
-	}
 }

@@ -1,14 +1,20 @@
 package main
 
-//GitAegis, use Shannon Entrophy to detect api_key in per line, focused on python file
-// Command:
-// - Scan
-// - Exempt
-// - Report
-//
-
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
-	fmt.Printf("Hello you are in go")
+	result, err := iterFolder(".") // scan current folder
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	for file, lines := range result {
+		fmt.Printf("File: %s (total %d lines)\n", file, len(lines))
+		for _, l := range lines {
+			fmt.Printf("  %d: %s\n", l.index, l.line)
+		}
+	}
 }

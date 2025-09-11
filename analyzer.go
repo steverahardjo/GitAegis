@@ -4,43 +4,77 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	gitignore "github.com/sabhiram/go-gitignore"
 )
 
-var filenameMap = make(map[string][]CodeLine) // declare at package level
+var filenameMap = make(map[string][]CodeLine)
 
-func iterFolder(entrThreshold int) (map[string][]CodeLine, error) {
-	defaultPath, err := os.Getwd()
+// Load .gitignore once
+func initGitIgnore() *gitignore.GitIgnore {
+	ign, err := gitignore.CompileIgnoreFile(".gitignore")
 	if err != nil {
-		return nil, fmt.Errorf("error getting directory: %w", err)
+		if os.IsNotExist(err) {
+			// no .gitignore: create empty matcher
+			return gitignore.CompileIgnoreLines()
+		}
+		panic(err)
 	}
+	return ign
+}
 
-	entries, err := os.ReadDir(defaultPath)
-	if err != nil {
-		return nil, fmt.Errorf("error reading directory: %w", err)
+var filters = allFilters(
+	entropyFilter(5.0),
+)
+
+// Private function to check ignores
+func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
+	if ign == nil {
+		return false
 	}
+	return ign.MatchesPath(path)
+}
 
-	for _, entry := range entries {
-		if entry.IsDir() {
-			// recurse into subfolder
-			subfolder := filepath.Join(defaultPath, entry.Name())
-			subResults, err := scanFolder(subfolder, entrThreshold)
+// Main folder walker
+func iterFolder(path string) (map[string][]CodeLine, error) {
+	ign := initGitIgnore()
+
+	err := filepath.WalkDir(path, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if ignoreFiles(p, ign) {
+			return nil
+		}
+
+		if !d.IsDir() {
+			lines, err := readAndCalc(p, filters)
+			filenameMap[p] = lines
+
 			if err != nil {
-				return nil, err
-			}
-			for k, v := range subResults {
-				filenameMap[k] = v
-			}
-		} else {
-			path := filepath.Join(defaultPath, entry.Name())
-			lines, err := readAndCalc(path, entrThreshold)
-			if err != nil {
-				return nil, err
-			}
-			if len(lines) > 0 {
-				filenameMap[path] = lines
+				panic("something is wrong while going through files")
 			}
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error walking folder: %w", err)
+	}
+	return filenameMap, nil
+}
+
+func main() {
+	result, err := iterFolder(".")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
 	}
 
-	return filenameMap, nil
+	for file, lines := range result {
+		fmt.Printf("File: %s (total %d lines)\n", file, len(lines))
+		for _, l := range lines {
+			fmt.Printf("  %d: %s\n", l.index, l.line)
+		}
+	}
 }
