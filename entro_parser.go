@@ -14,8 +14,8 @@ import (
 
 // CodeLine stores a matching line and its index
 type CodeLine struct {
-	line  string
-	index int
+	Line  string
+	Index int
 }
 
 // --------------------

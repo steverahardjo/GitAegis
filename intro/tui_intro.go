@@ -1,4 +1,4 @@
-package main
+package intro
 
 // tui_intro.go
 import (

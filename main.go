@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	result, err := iterFolder(".") // scan current folder
+	result, err := iterFolder("/home/holyknight101/Documents/Projects/Personal/exp_site")
 	if err != nil {
 		fmt.Println("Error:", err)
 		return

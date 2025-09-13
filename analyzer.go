@@ -2,13 +2,17 @@ package main
 
 import (
 	"fmt"
+	gitignore "github.com/sabhiram/go-gitignore"
 	"os"
 	"path/filepath"
-
-	gitignore "github.com/sabhiram/go-gitignore"
+	"sync"
 )
 
 var filenameMap = make(map[string][]CodeLine)
+var mu sync.Mutex
+
+// language specific exemption
+var exempt = []string{"uv.lock", "pyproject.toml"}
 
 // Load .gitignore once
 func initGitIgnore() *gitignore.GitIgnore {
@@ -24,27 +28,37 @@ func initGitIgnore() *gitignore.GitIgnore {
 }
 
 var filters = allFilters(
-	entropyFilter(5.0),
+	entropyFilter(4.8),
 )
+
+func isExempt(filename string) bool {
+	for _, ex := range exempt {
+		if filepath.Base(filename) == ex {
+			return true
+		}
+	}
+	return false
+}
 
 // Private function to check ignores
 func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
-	if ign == nil {
-		return false
-	}
 	return ign.MatchesPath(path)
 }
 
 // Main folder walker
-func iterFolder(path string) (map[string][]CodeLine, error) {
+func iterFolder(root string) (map[string][]CodeLine, error) {
 	ign := initGitIgnore()
 
-	err := filepath.WalkDir(path, func(p string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
 		if ignoreFiles(p, ign) {
+			return nil
+		}
+
+		if isExempt(p) {
 			return nil
 		}
 
@@ -62,19 +76,4 @@ func iterFolder(path string) (map[string][]CodeLine, error) {
 		return nil, fmt.Errorf("error walking folder: %w", err)
 	}
 	return filenameMap, nil
-}
-
-func main() {
-	result, err := iterFolder(".")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	for file, lines := range result {
-		fmt.Printf("File: %s (total %d lines)\n", file, len(lines))
-		for _, l := range lines {
-			fmt.Printf("  %d: %s\n", l.index, l.line)
-		}
-	}
 }
