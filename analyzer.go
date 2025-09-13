@@ -2,17 +2,16 @@ package main
 
 import (
 	"fmt"
-	gitignore "github.com/sabhiram/go-gitignore"
 	"os"
 	"path/filepath"
-	"sync"
+
+	gitignore "github.com/sabhiram/go-gitignore"
 )
 
 var filenameMap = make(map[string][]CodeLine)
-var mu sync.Mutex
 
 // language specific exemption
-var exempt = []string{"uv.lock", "pyproject.toml"}
+var exempt = []string{"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json", "yarn.lock", "go.sum", "deno.lock", "Cargo.lock"}
 
 // Load .gitignore once
 func initGitIgnore() *gitignore.GitIgnore {

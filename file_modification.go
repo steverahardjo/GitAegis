@@ -4,13 +4,12 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
+	"path"
 )
 
-// Global map to hold data
-var PrevfilenameMap = make(map[string][]CodeLine)
-
-func SaveFilenameMap() error {
-	f, err := os.Create(".gitaegis")
+func SaveFilenameMap(root string, filenameMap map[string][]CodeLine) error {
+	path := path.Join(root, ".gitaegis")
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -21,38 +20,57 @@ func SaveFilenameMap() error {
 	return enc.Encode(filenameMap)
 }
 
-func LoadFilenameMap(root string) error {
-	f, err := os.Open(".gitaegis")
+func LoadFilenameMap(root string) (map[string][]CodeLine, error) {
+	path := path.Join(root, ".gitaegis")
+	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			PrevfilenameMap = make(map[string][]CodeLine)
-			return nil
+			// Return empty map if file does not exist
+			return make(map[string][]CodeLine), nil
 		}
-		return err
+		return nil, err
 	}
 	defer f.Close()
 
 	dec := gob.NewDecoder(f)
 	gob.Register(CodeLine{})
-	return dec.Decode(&filenameMap)
+
+	filenameMap := make(map[string][]CodeLine)
+	if err := dec.Decode(&filenameMap); err != nil {
+		return nil, err
+	}
+
+	return filenameMap, err
 }
 
 func main() {
-	// Call iterFolder, assumed defined in another file in same package
-	result, err := iterFolder("/home/holyknight101/Documents/Projects/Personal/patent-analyser-fyp")
+	root := "/home/holyknight101/Documents/Projects/Personal/e-form"
+
+	// Run folder traversal
+	result, err := iterFolder(root)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
 
-	for file, lines := range result {
-		if len(lines) > 0 {
-			fmt.Printf("File: %s (total %d lines)\n", file, len(lines))
-		}
+	// Save the map after traversal
+	if err := SaveFilenameMap(root, result); err != nil {
+		fmt.Println("Error saving:", err)
 	}
 
-	// Save the map after traversal
-	if err := SaveFilenameMap(); err != nil {
-		fmt.Println("Error saving:", err)
+	// Load the map back
+	loadedMap, err := LoadFilenameMap(root)
+	if err != nil {
+		fmt.Println("Error loading:", err)
+		return
+	}
+
+	// Iterate over loaded data
+	for file, lines := range loadedMap {
+		if len(lines) > 0 {
+			for l := range lines {
+				fmt.Printf("File: %s, Line %d: %s\n", file, lines[l].Index, lines[l].Line)
+			}
+		}
 	}
 }
