@@ -10,14 +10,13 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
 )
 
 // CodeLine stores a matching line and its index
 type CodeLine struct {
 	Line  string
 	Index int
-}:\
+}
 
 // --------------------
 // Filters

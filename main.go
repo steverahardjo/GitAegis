@@ -14,7 +14,7 @@ func main() {
 	for file, lines := range result {
 		fmt.Printf("File: %s (total %d lines)\n", file, len(lines))
 		for _, l := range lines {
-			fmt.Printf("  %d: %s\n", l.index, l.line)
+			fmt.Printf("  %d: %s\n", l.Index, l.Line)
 		}
 	}
 }
