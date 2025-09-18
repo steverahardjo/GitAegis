@@ -11,7 +11,7 @@ import (
 var filenameMap = make(map[string][]CodeLine)
 
 // language specific exemption
-var exempt = []string{"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json", "yarn.lock", "go.sum", "deno.lock", "Cargo.lock"}
+var exempt = []string{"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json", "yarn.lock", "go.sum", "deno.lock", "Cargo.lock", ".gitignore"}
 
 // Load .gitignore once
 func initGitIgnore() *gitignore.GitIgnore {
