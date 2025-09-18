@@ -34,15 +34,10 @@ var apiKeyRegex = regexp.MustCompile(`[a-zA-Z0-9_.+/~$-][a-zA-Z0-9_.+/~$=!%:-]{1
 
 func RegexFilter() LineFilter {
 	return func(s string) bool {
-		// Regex structure check
-		if !apiKeyRegex.MatchString(s) {
-			return true
+		if len(s) >= 15{
+			return !apiKeyRegex.MatchString(s)
 		}
-		// Enforce length between 16 and 1024 in code
-		if len(s) < 16 || len(s) > 1024 {
-			return true
-		}
-		return false
+		return true
 	}
 }
 

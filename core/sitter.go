@@ -149,7 +149,7 @@ func walkParse(node *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 
 		content := child.Content(code)
 
-		if len(content) > 0 && len(content) <= 2048 {
+		if len(content) > 0 && len(content) <= 2048 && child.Type() == "identifier" {
 			if filter(content) {
 				start := child.StartPoint()
 				results = append(results, CodeLine{
