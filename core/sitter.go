@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"context"
@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -26,7 +24,7 @@ type GrammarConfig struct {
 
 // loadExtMap loads extension/filename mappings from a JSON config
 func loadExtMap(path string) (*GrammarConfig, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile("sitter.json")
 	if err != nil {
 		return nil, err
 	}
@@ -58,22 +56,18 @@ func initGrammar(filename string) *sitter.Parser {
 
 	// lookup by extension
 	ext := filepath.Ext(filename)
-	langname, ok := cfg.Extensions[ext]
+	langBase, ok := cfg.Extensions[ext]
 	if !ok {
 		// fallback: check filenames
 		base := filepath.Base(filename)
-		langname, ok = cfg.Filenames[base]
+		langBase, ok = cfg.Filenames[base]
 	}
 	if !ok {
 		fmt.Println("No grammar found for:", filename)
 		return nil
 	}
-
-	// ensure langname doesn’t include ".so"
-	langBase := strings.TrimSuffix(langname, ".so")
-
 	// build .so path and load
-	soPath := filepath.Join(homeDir, root, langBase+".so")
+	soPath := filepath.Join(homeDir, root, langBase)
 	lib, dlErr := purego.Dlopen(soPath, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if dlErr != nil {
 		fmt.Println("Error loading grammar:", dlErr)
@@ -119,10 +113,7 @@ func createTree(filename string) (*sitter.Tree, []byte, error) {
 }
 
 // walkParse recursively walks the AST without depth limit
-var apiKeyRegex = regexp.MustCompile(`[a-zA-Z0-9_.+/~$-][a-zA-Z0-9_.+/~$=!%:-]{10,1000}[a-zA-Z0-9_.+/=~$!%-]`)
-
-// walkParse recursively walks the AST without depth limit
-func walkParse(node *sitter.Node, code []byte) []CodeLine {
+func walkParse(node *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 	results := []CodeLine{}
 	if node == nil {
 		return results
@@ -137,19 +128,18 @@ func walkParse(node *sitter.Node, code []byte) []CodeLine {
 		content := child.Content(code)
 
 		// --- Apply filters ---
-		if len(content) > 0 && len(content) <= 2048 { // limit content length
-			if calcEntropy(content) > 5.0 && apiKeyRegex.MatchString(content) {
+		if len(content) > 0 && len(content) <= 2048 {
+			if filter(content) {
 				start := child.StartPoint()
 				results = append(results, CodeLine{
-					Line:   content,               // snippet (string literal / identifier)
-					Index:  int(start.Row) + 1,    // 1-based line number
-					Column: int(start.Column) + 1, // 1-based column number
+					Line:   content,
+					Index:  int(start.Row) + 1,
+					Column: int(start.Column) + 1,
 				})
 			}
 		}
-
 		// Recurse
-		results = append(results, walkParse(child, code)...)
+		results = append(results, walkParse(child, filter, code)...)
 	}
 
 	return results
@@ -158,29 +148,10 @@ func walkParse(node *sitter.Node, code []byte) []CodeLine {
 // --------------------
 // Helpers
 // --------------------
-
 // safePreview truncates long strings for printing
 func safePreview(s string) string {
 	if len(s) > 50 {
 		return s[:47] + "..."
 	}
 	return s
-}
-
-func filter_sitter(filename string) {
-	tree, code, err := createTree(filename)
-	if err != nil {
-		fmt.Println("Failed to parse file:", err)
-		return
-	}
-	defer tree.Close()
-
-	fmt.Printf("File parsed successfully: %s\n", filename)
-	// Get root node of AST
-	rootNode := tree.RootNode()
-	fmt.Printf("Root node type: %s\n", rootNode.Type())
-	// Walk the tree
-	fmt.Println("Walking AST...")
-	walkParse(rootNode, code)
-
 }

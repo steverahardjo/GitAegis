@@ -1,4 +1,4 @@
-package main
+package core
 
 // ------------------------------------
 // entro_parser.go
@@ -7,7 +7,6 @@ package main
 import (
 	"math"
 	"regexp"
-	"strings"
 )
 
 // CodeLine stores a matching line and its index
@@ -25,31 +24,22 @@ type CodeLine struct {
 type LineFilter func(string) bool
 
 // entropyFilter returns a filter that checks if a line's entropy > threshold
-func entropyFilter(threshold float64) LineFilter {
+func EntropyFilter(threshold float64) LineFilter {
 	return func(s string) bool {
 		return calcEntropy(s) > threshold
 	}
 }
 
-var candidateRe = regexp.MustCompile(
-	`^[a-zA-Z0-9_.+/~$-][a-zA-Z0-9_.+/=~$-]+[a-zA-Z0-9_.+/=~$-]$`,
-)
+var apiKeyRegex = regexp.MustCompile(`[a-zA-Z0-9_.+/~$-][a-zA-Z0-9_.+/~$=!%:-]{10,1000}[a-zA-Z0-9_.+/=~$!%-]`)
 
-func regexFilter() LineFilter {
+func RegexFilter() LineFilter {
 	return func(s string) bool {
 		// Regex structure check
-		if !candidateRe.MatchString(s) {
+		if !apiKeyRegex.MatchString(s) {
 			return false
 		}
 		// Enforce length between 16 and 1024 in code
 		if len(s) < 16 || len(s) > 1024 {
-			return false
-		}
-		// Manual "negative lookahead" checks
-		if strings.Contains(s, `\n`) ||
-			strings.Contains(s, `\t`) ||
-			strings.Contains(s, `\r`) ||
-			strings.Contains(s, `\"`) {
 			return false
 		}
 		return true
@@ -57,7 +47,7 @@ func regexFilter() LineFilter {
 }
 
 // allFilters combines multiple filters into one (logical AND)
-func allFilters(filters ...LineFilter) LineFilter {
+func AllFilters(filters ...LineFilter) LineFilter {
 	return func(s string) bool {
 		for _, f := range filters {
 			if !f(s) {

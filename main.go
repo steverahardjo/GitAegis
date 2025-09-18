@@ -2,19 +2,35 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+
+	"GitAegis/core"
 )
 
 func main() {
-	result, err := iterFolder("/home/holyknight101/Documents/Projects/Personal/exp_site")
+	// Resolve the full path for safety (tilde doesn't expand automatically in Go)
+	home, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		log.Fatal("failed to get home directory:", err)
+	}
+	projectPath := filepath.Join(home, "Documents", "Projects", "Personal", "exp_site")
+
+	// Setup filters
+	filters := core.AllFilters(
+		core.EntropyFilter(3.5),
+		core.RegexFilter(),
+	)
+
+	// Run folder iteration
+	results, err := core.IterFolder(projectPath, filters)
+	if err != nil {
+		log.Fatal("IterFolder failed:", err)
 	}
 
-	for file, lines := range result {
-		fmt.Printf("File: %s (total %d lines)\n", file, len(lines))
-		for _, l := range lines {
-			fmt.Printf("  %d: %s\n", l.Index, l.Line)
-		}
-	}
+	// Pretty print the results
+	core.PrettyPrintResults(results)
+
+	fmt.Println("Scan complete!")
 }

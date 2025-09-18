@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"fmt"
@@ -26,10 +26,6 @@ func initGitIgnore() *gitignore.GitIgnore {
 	return ign
 }
 
-var filters = allFilters(
-	entropyFilter(4.8),
-)
-
 func isExempt(filename string) bool {
 	for _, ex := range exempt {
 		if filepath.Base(filename) == ex {
@@ -45,7 +41,7 @@ func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
 }
 
 // Main folder walker
-func iterFolder(root string) (map[string][]CodeLine, error) {
+func IterFolder(root string, filter LineFilter) (map[string][]CodeLine, error) {
 	ign := initGitIgnore()
 
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
@@ -69,7 +65,7 @@ func iterFolder(root string) (map[string][]CodeLine, error) {
 
 			// Walk AST and collect CodeLine results
 			rootNode := tree.RootNode()
-			results := walkParse(rootNode, code)
+			results := walkParse(rootNode, filter, code)
 
 			// Save results in global map
 			if len(results) > 0 {
@@ -83,4 +79,20 @@ func iterFolder(root string) (map[string][]CodeLine, error) {
 	}
 
 	return filenameMap, nil
+}
+
+func PrettyPrintResults(results map[string][]CodeLine) {
+	red := "\033[31m"
+	green := "\033[32m"
+	yellow := "\033[33m"
+	reset := "\033[0m"
+
+	fmt.Println(yellow + "GITAEGIS DETECTED THE FOLLOWING SECRETS\n===============================" + reset)
+	for filename, lines := range results {
+		fmt.Println(green + "File: " + filename + reset)
+		for _, line := range lines {
+			fmt.Printf("%s|\n Index: %d\n Line: %s%s\n", red, line.Index, line.Line, reset)
+		}
+		fmt.Println(green + "------------------------------" + reset)
+	}
 }
