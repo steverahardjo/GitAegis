@@ -53,20 +53,27 @@ func iterFolder(root string) (map[string][]CodeLine, error) {
 			return err
 		}
 
-		if ignoreFiles(p, ign) {
-			return nil
-		}
-
-		if isExempt(p) {
+		// skip ignored files
+		if ignoreFiles(p, ign) || isExempt(p) {
 			return nil
 		}
 
 		if !d.IsDir() {
-			lines, err := readAndCalc(p, filters)
-			filenameMap[p] = lines
+			// Parse file with tree-sitter
+			tree, code, parseErr := createTree(p)
+			if parseErr != nil {
+				fmt.Printf("Skipping %s (parse error: %v)\n", p, parseErr)
+				return nil
+			}
+			defer tree.Close()
 
-			if err != nil {
-				panic("something is wrong while going through files")
+			// Walk AST and collect CodeLine results
+			rootNode := tree.RootNode()
+			results := walkParse(rootNode, code)
+
+			// Save results in global map
+			if len(results) > 0 {
+				filenameMap[p] = results
 			}
 		}
 		return nil
@@ -74,5 +81,6 @@ func iterFolder(root string) (map[string][]CodeLine, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error walking folder: %w", err)
 	}
+
 	return filenameMap, nil
 }

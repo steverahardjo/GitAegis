@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/gob"
-	"fmt"
 	"os"
 	"path"
 )
@@ -41,36 +40,4 @@ func LoadFilenameMap(root string) (map[string][]CodeLine, error) {
 	}
 
 	return filenameMap, err
-}
-
-func main() {
-	root := "/home/holyknight101/Documents/Projects/Personal/e-form"
-
-	// Run folder traversal
-	result, err := iterFolder(root)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	// Save the map after traversal
-	if err := SaveFilenameMap(root, result); err != nil {
-		fmt.Println("Error saving:", err)
-	}
-
-	// Load the map back
-	loadedMap, err := LoadFilenameMap(root)
-	if err != nil {
-		fmt.Println("Error loading:", err)
-		return
-	}
-
-	// Iterate over loaded data
-	for file, lines := range loadedMap {
-		if len(lines) > 0 {
-			for l := range lines {
-				fmt.Printf("File: %s, Line %d: %s\n", file, lines[l].Index, lines[l].Line)
-			}
-		}
-	}
 }

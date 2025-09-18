@@ -5,17 +5,16 @@ package main
 // --------------------
 
 import (
-	"bufio"
 	"math"
-	"os"
 	"regexp"
 	"strings"
 )
 
 // CodeLine stores a matching line and its index
 type CodeLine struct {
-	Line  string
-	Index int
+	Line   string
+	Index  int
+	Column int
 }
 
 // --------------------
@@ -93,31 +92,4 @@ func calcEntropy(line string) float64 {
 	}
 
 	return entropy
-}
-
-// readAndCalc reads lines from a file and returns those
-// that pass the provided filter
-func readAndCalc(filename string, filter LineFilter) ([]CodeLine, error) {
-	var collection = []CodeLine{}
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	currIndex := 0
-
-	for scanner.Scan() {
-		currIndex++
-		line := scanner.Text()
-		if filter(line) {
-			collection = append(collection, CodeLine{line, currIndex})
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-	return collection, nil
 }
