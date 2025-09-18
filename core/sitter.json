@@ -1,10 +1,10 @@
 {
   "extensions": {
-    ".py": "python",
+    ".py": "python.so",
     ".js": "javascript",
     ".ts": "typescript",
     ".tsx": "tsx",
-    ".go": "go",
+    ".go": "go.so",
     ".rs": "rust",
     ".c": "c",
     ".h": "c",

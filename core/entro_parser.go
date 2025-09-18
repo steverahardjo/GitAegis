@@ -36,13 +36,13 @@ func RegexFilter() LineFilter {
 	return func(s string) bool {
 		// Regex structure check
 		if !apiKeyRegex.MatchString(s) {
-			return false
+			return true
 		}
 		// Enforce length between 16 and 1024 in code
 		if len(s) < 16 || len(s) > 1024 {
-			return false
+			return true
 		}
-		return true
+		return false
 	}
 }
 
