@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ebitengine/purego"
+	sitter "github.com/smacker/go-tree-sitter"
 	"os"
 	"path/filepath"
 	"runtime"
-	"unsafe"
 	"strings"
-	"github.com/ebitengine/purego"
-	sitter "github.com/smacker/go-tree-sitter"
+	"unsafe"
 )
 
 // GrammarConfig defines the structure of sitter.json
@@ -149,7 +149,7 @@ func walkParse(node *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 
 		content := child.Content(code)
 
-		if len(content) > 0 && len(content) <= 2048 && child.Type() == "identifier" {
+		if len(content) > 0 && len(content) <= 2048 && child.ChildCount() == 0 {
 			if filter(content) {
 				start := child.StartPoint()
 				results = append(results, CodeLine{

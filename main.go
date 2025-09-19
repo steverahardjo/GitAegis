@@ -15,12 +15,10 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to get home directory:", err)
 	}
-	projectPath := filepath.Join(home, "Documents", "Projects", "Personal", "GitAegis")
-
+	projectPath := filepath.Join(home, "Documents", "Projects", "Personal", "exp_site")
 	// Setup filters
 	filters := core.AllFilters(
 		core.EntropyFilter(5.0),
-		core.RegexFilter(),
 	)
 	// Run folder iteration
 	results, err := core.IterFolder(projectPath, filters)

@@ -90,8 +90,11 @@ func PrettyPrintResults(results map[string][]CodeLine) {
 	fmt.Println(yellow + "GITAEGIS DETECTED THE FOLLOWING SECRETS\n===============================" + reset)
 	for filename, lines := range results {
 		fmt.Println(green + "File: " + filename + reset)
+		if len(lines) <= 0 {
+			continue
+		}
 		for _, line := range lines {
-			fmt.Printf("%s|\n Index: %d\n Line: %s%s\n", red, line.Index, line.Line, reset)
+			fmt.Printf("%s \t |\n Index: %d\n Line: %s%s\n", red, line.Index, line.Line, reset)
 		}
 		fmt.Println(green + "------------------------------" + reset)
 	}

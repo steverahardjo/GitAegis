@@ -34,7 +34,7 @@ var apiKeyRegex = regexp.MustCompile(`[a-zA-Z0-9_.+/~$-][a-zA-Z0-9_.+/~$=!%:-]{1
 
 func RegexFilter() LineFilter {
 	return func(s string) bool {
-		if len(s) >= 15{
+		if len(s) >= 15 {
 			return !apiKeyRegex.MatchString(s)
 		}
 		return true
@@ -45,17 +45,13 @@ func RegexFilter() LineFilter {
 func AllFilters(filters ...LineFilter) LineFilter {
 	return func(s string) bool {
 		for _, f := range filters {
-			if !f(s) {
-				return false
+			if f(s) {
+				return true
 			}
 		}
-		return true
+		return false
 	}
 }
-
-// --------------------
-// Core logic
-// --------------------
 
 // calcEntropy computes Shannon entropy of a string
 func calcEntropy(line string) float64 {
@@ -78,3 +74,7 @@ func calcEntropy(line string) float64 {
 
 	return entropy
 }
+
+//regex grammar generator based on certain api call
+// - length
+// - prefix
