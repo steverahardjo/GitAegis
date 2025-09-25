@@ -4,4 +4,4 @@ go.mod
 .git
 .gitaegis
 GitAegis.exe
-env
+.env

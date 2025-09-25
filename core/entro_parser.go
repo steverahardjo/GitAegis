@@ -16,10 +16,6 @@ type CodeLine struct {
 	Column int
 }
 
-// --------------------
-// Filters
-// --------------------
-
 // LineFilter is a predicate that returns true if a line passes a check
 type LineFilter func(string) bool
 
@@ -74,7 +70,3 @@ func calcEntropy(line string) float64 {
 
 	return entropy
 }
-
-//regex grammar generator based on certain api call
-// - length
-// - prefix

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"log"
 
 	gitignore "github.com/sabhiram/go-gitignore"
 )
@@ -11,7 +12,14 @@ import (
 var filenameMap = make(map[string][]CodeLine)
 
 // language specific exemption
-var exempt = []string{"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json", "yarn.lock", "go.sum", "deno.lock", "Cargo.lock", ".gitignore", ".python-version"}
+var Exempt = []string{"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json", "yarn.lock", "go.sum", "deno.lock", "Cargo.lock", ".gitignore", ".python-version"}
+
+func isFilenameMapEmpty(m map[string][]CodeLine) bool {
+	if len(m) == 0 {
+		return true
+	}
+	return false
+}
 
 // Load .gitignore once
 func initGitIgnore() *gitignore.GitIgnore {
@@ -21,7 +29,7 @@ func initGitIgnore() *gitignore.GitIgnore {
 			// no .gitignore: create empty matcher
 			return gitignore.CompileIgnoreLines()
 		}
-		panic(err)
+		log.Fatalf("Error loading .gitignore: %v", err)
 	}
 	return ign
 }
@@ -38,6 +46,15 @@ func isExempt(filename string) bool {
 // Private function to check ignores
 func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
 	return ign.MatchesPath(path)
+}
+
+func AddExempt(file string) {
+	for _, f := range Exempt {
+		if f == file {
+			fmt.Println("File is already exempted.")
+		}
+	}
+	Exempt = append(Exempt, file)
 }
 
 // Main folder walker
