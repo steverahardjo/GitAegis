@@ -23,8 +23,8 @@ func initialModel() model {
 
 // simple style (you can adjust as needed)
 var style = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("9")).   // red text
-	Background(lipgloss.Color("228")). // yellow background
+	Foreground(lipgloss.Color("9")).
+	Background(lipgloss.Color("228")).
 	Bold(true).
 	Padding(1, 2).
 	Border(lipgloss.RoundedBorder())

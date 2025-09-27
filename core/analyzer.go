@@ -14,12 +14,6 @@ var filenameMap = make(map[string][]CodeLine)
 // language specific exemption
 var Exempt = []string{"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json", "yarn.lock", "go.sum", "deno.lock", "Cargo.lock", ".gitignore", ".python-version"}
 
-func isFilenameMapEmpty(m map[string][]CodeLine) bool {
-	if len(m) == 0 {
-		return true
-	}
-	return false
-}
 
 // Load .gitignore once
 func initGitIgnore() *gitignore.GitIgnore {
@@ -34,8 +28,12 @@ func initGitIgnore() *gitignore.GitIgnore {
 	return ign
 }
 
+func IsFilenameMapEmpty(m map[string][]CodeLine) bool {
+	return len(m) == 0
+}
+
 func isExempt(filename string) bool {
-	for _, ex := range exempt {
+	for _, ex := range Exempt {
 		if filepath.Base(filename) == ex {
 			return true
 		}

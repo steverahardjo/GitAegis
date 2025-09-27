@@ -30,9 +30,9 @@ var scanCmd = &cobra.Command{
 		}
 
 		if found {
-			fmt.Println("\n✅ Secrets detected! You may run `gitaegis obfuscate` to mask them.")
+			fmt.Println("\n Secrets detected! You may run `gitaegis obfuscate` to mask them.")
 		} else {
-			fmt.Println("\n✨ No secrets found. Nothing to obfuscate.")
+			fmt.Println("\n No secrets found. Nothing to obfuscate.")
 		}
 	},
 }
@@ -95,7 +95,7 @@ func Scan(entrophy_limit float64) (bool, error) {
 		return false, fmt.Errorf("scan failed: %w", err)
 	}
 
-	if core.isFilenameMapEmpty(results) {
+	if core.IsFilenameMapEmpty(results) {
 		log.Println("No secrets found")
 		return false, nil
 	}
@@ -125,7 +125,19 @@ func runObfuscate() error {
 func init() {
 	// add scanCmd to root
 	rootCmd.AddCommand(scanCmd)
-
 	// add --ent_limit (default 5.0)
 	scanCmd.Flags().Float64VarP(&entLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
+	//add gitignoreCmd to root
+	rootCmd.AddCommand(gitignoreCmd)
+	//add obfuscateCmd to root
+	rootCmd.AddCommand(obfuscateCmd)
+	//add ExemptAdditor to root
+	rootCmd.AddCommand(ExemptAdditor)
+}
+
+// main function to run the CLI
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal(err)
+	}
 }
