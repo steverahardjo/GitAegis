@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"log"
 	"sync"
+	"runtime"
 
 	gitignore "github.com/sabhiram/go-gitignore"
 )
@@ -61,37 +62,21 @@ func isExempt(filename string) bool {
 	return false
 }
 
-// Main folder walker
-func (res  *ScanResult)IterFolder(root string, filter LineFilter) (map[string][]CodeLine, error) {
+// Main folder walker (parallelized) {public}
+func (res *ScanResult) IterFolder(root string, filter LineFilter) (error) {
 	ign := initGitIgnore()
 
+	// Collect all file paths first
+	var files []string
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-
-		// skip ignored files
 		if ignoreFiles(p, ign) || isExempt(p) {
 			return nil
 		}
-
 		if !d.IsDir() {
-			// Parse file with tree-sitter
-			tree, code, parseErr := createTree(p)
-			if parseErr != nil {
-				fmt.Printf("Skipping %s (parse error: %v)\n", p, parseErr)
-				return nil
-			}
-			defer tree.Close()
-
-			// Walk AST and collect CodeLine results
-			rootNode := tree.RootNode()
-			results := walkParse(rootNode, filter, code)
-
-			// Save results in global map
-			if len(results) > 0 {
-				res.filenameMap[p] = results
-			}
+			files = append(files, p)
 		}
 		return nil
 	})
@@ -99,7 +84,33 @@ func (res  *ScanResult)IterFolder(root string, filter LineFilter) (map[string][]
 		return nil, fmt.Errorf("error walking folder: %w", err)
 	}
 
-	return res.filenameMap, nil
+	// Worker pool for parallel parsing
+	numWorkers := runtime.NumCPU()
+	fileCh := make(chan string, len(files))
+	var wg sync.WaitGroup
+
+	for i := 0; i < numWorkers; i++{
+		wg.Add(1)
+		go func(){
+			defer wg.Done()
+			for filename := range fileCh {
+				tree, code, err := createTree(filename)
+				if err != nil {
+					log.Printf("Error parsing %s: %v", filename, err)
+					continue
+				}
+				lines := walkParse(tree.RootNode(), filter, code)
+				if len(lines) > 0 {
+					res.mutex.Lock()
+					res.filenameMap[filename] = lines
+					res.mutex.Unlock()
+				}
+			}
+		}()
+	}
+	close(fileCh)
+	wg.Wait()
+	return err
 }
 
 

@@ -114,7 +114,7 @@ func initGrammar(filename string) *sitter.Parser {
 // File parsing
 // --------------------
 
-// createTree parses a file and returns both the syntax tree and file content
+// createTree parses a file and returns both the syntax tree and file content {private}
 func createTree(filename string) (*sitter.Tree, []byte, error) {
 	parser := initGrammar(filename)
 	if parser == nil {
@@ -134,7 +134,7 @@ func createTree(filename string) (*sitter.Tree, []byte, error) {
 	return tree, data, nil
 }
 
-// walkParse recursively walks the AST without depth limit
+// walkParse recursively walks the AST without depth limit {private}
 func walkParse(node *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 	results := []CodeLine{}
 	if node == nil {
