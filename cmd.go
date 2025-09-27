@@ -22,7 +22,7 @@ var entLimit float64
 var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Scan the current directory for secrets",
-	Long:  "Scan the current directory for secrets using entropy and regex",
+	Long:  "Scan the current directory for secrets using entropy and regex for api key",
 	Run: func(cmd *cobra.Command, args []string) {
 		found, err := Scan(entLimit)
 		if err != nil {
@@ -135,9 +135,4 @@ func init() {
 	rootCmd.AddCommand(ExemptAdditor)
 }
 
-// main function to run the CLI
-func main() {
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatal(err)
-	}
-}
+

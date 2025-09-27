@@ -5,17 +5,36 @@ import (
 	"os"
 	"path/filepath"
 	"log"
+	"sync"
 
 	gitignore "github.com/sabhiram/go-gitignore"
 )
 
-var filenameMap = make(map[string][]CodeLine)
+type ScanResult struct{
+	filenameMap map[string][]CodeLine
+	mutex sync.Mutex
+	exempt []string
+}
 
 // language specific exemption
 var Exempt = []string{"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json", "yarn.lock", "go.sum", "deno.lock", "Cargo.lock", ".gitignore", ".python-version"}
 
+func (res *ScanResult) Init() {
+	res.filenameMap = make(map[string][]CodeLine)
+	res.exempt = Exempt
+}
 
-// Load .gitignore once
+func (res *ScanResult)AddExempt(file string) {
+	for _, f := range Exempt {
+		if f == file {
+			fmt.Println("File is already exempted.")
+		}
+	}
+	Exempt = append(res.exempt, file)
+}
+
+
+// Load .gitignore once {private}
 func initGitIgnore() *gitignore.GitIgnore {
 	ign, err := gitignore.CompileIgnoreFile(".gitignore")
 	if err != nil {
@@ -28,6 +47,7 @@ func initGitIgnore() *gitignore.GitIgnore {
 	return ign
 }
 
+//filenameMap check if emptu {public}
 func IsFilenameMapEmpty(m map[string][]CodeLine) bool {
 	return len(m) == 0
 }
@@ -41,22 +61,8 @@ func isExempt(filename string) bool {
 	return false
 }
 
-// Private function to check ignores
-func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
-	return ign.MatchesPath(path)
-}
-
-func AddExempt(file string) {
-	for _, f := range Exempt {
-		if f == file {
-			fmt.Println("File is already exempted.")
-		}
-	}
-	Exempt = append(Exempt, file)
-}
-
 // Main folder walker
-func IterFolder(root string, filter LineFilter) (map[string][]CodeLine, error) {
+func (res  *ScanResult)IterFolder(root string, filter LineFilter) (map[string][]CodeLine, error) {
 	ign := initGitIgnore()
 
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
@@ -84,7 +90,7 @@ func IterFolder(root string, filter LineFilter) (map[string][]CodeLine, error) {
 
 			// Save results in global map
 			if len(results) > 0 {
-				filenameMap[p] = results
+				res.filenameMap[p] = results
 			}
 		}
 		return nil
@@ -93,17 +99,24 @@ func IterFolder(root string, filter LineFilter) (map[string][]CodeLine, error) {
 		return nil, fmt.Errorf("error walking folder: %w", err)
 	}
 
-	return filenameMap, nil
+	return res.filenameMap, nil
 }
 
-func PrettyPrintResults(results map[string][]CodeLine) {
+
+// Private function to check ignores
+func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
+	return ign.MatchesPath(path)
+}
+
+
+func (res *ScanResult)  PrettyPrintResults() {
 	red := "\033[31m"
 	green := "\033[32m"
 	yellow := "\033[33m"
 	reset := "\033[0m"
 
 	fmt.Println(yellow + "GITAEGIS DETECTED THE FOLLOWING SECRETS\n===============================" + reset)
-	for filename, lines := range results {
+	for filename, lines := range res.filenameMap {
 		fmt.Println(green + "File: " + filename + reset)
 		if len(lines) <= 0 {
 			continue

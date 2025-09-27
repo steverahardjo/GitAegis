@@ -159,17 +159,9 @@ func walkParse(node *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 				})
 			}
 		}
-		// Recurse
+		// Recursion
 		results = append(results, walkParse(child, filter, code)...)
 	}
 
 	return results
-}
-
-// safePreview truncates long strings for printing
-func safePreview(s string) string {
-	if len(s) > 50 {
-		return s[:47] + "..."
-	}
-	return s
 }
