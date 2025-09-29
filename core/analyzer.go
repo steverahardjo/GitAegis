@@ -49,8 +49,11 @@ func initGitIgnore() *gitignore.GitIgnore {
 }
 
 //filenameMap check if emptu {public}
-func IsFilenameMapEmpty(m map[string][]CodeLine) bool {
-	return len(m) == 0
+func (res *ScanResult)IsFilenameMapEmpty() bool {
+	if res.filenameMap == nil {
+		return true
+	}
+	return false
 }
 
 func isExempt(filename string) bool {
@@ -80,9 +83,6 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter) (error) {
 		}
 		return nil
 	})
-	if err != nil {
-		return nil, fmt.Errorf("error walking folder: %w", err)
-	}
 
 	// Worker pool for parallel parsing
 	numWorkers := runtime.NumCPU()
@@ -114,11 +114,15 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter) (error) {
 }
 
 
+
 // Private function to check ignores
 func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
 	return ign.MatchesPath(path)
 }
 
+func (res *ScanResult) Get_filenameMap() map[string][]CodeLine {
+	return res.filenameMap
+}
 
 func (res *ScanResult)  PrettyPrintResults() {
 	red := "\033[31m"

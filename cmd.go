@@ -11,11 +11,18 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
+var result *core.ScanResult
+
 var rootCmd = &cobra.Command{
-	Use:   "gitaegis",
-	Short: "API key scanner in Go",
-	Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
+    Use:   "gitaegis",
+    Short: "API key scanner in Go",
+    Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
+    Run: func(cmd *cobra.Command, args []string) {
+        result = &core.ScanResult{}
+        result.Init()
+    },
 }
+
 
 var entLimit float64
 
@@ -24,7 +31,7 @@ var scanCmd = &cobra.Command{
 	Short: "Scan the current directory for secrets",
 	Long:  "Scan the current directory for secrets using entropy and regex for api key",
 	Run: func(cmd *cobra.Command, args []string) {
-		found, err := Scan(entLimit)
+		found, err := scan(entLimit)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -68,9 +75,8 @@ var ExemptAdditor = &cobra.Command{
 			fmt.Println("\n No files specified. Usage: add_exempt <file1> <file2> ...")
 			return
 		}
-
 		for _, file := range args {
-			core.AddExempt(file)
+			result.AddExempt(file)
 		}
 
 		fmt.Println("\n Current exemption list:", core.Exempt)
@@ -79,7 +85,7 @@ var ExemptAdditor = &cobra.Command{
 
 // Scan runs the secret detection on the current working directory.
 // It returns true if secrets were found, otherwise false.
-func Scan(entrophy_limit float64) (bool, error) {
+func scan(entrophy_limit float64) (bool, error) {
 	projectPath, err := os.Getwd()
 	if err != nil {
 		return false, fmt.Errorf("failed to get working directory: %w", err)
@@ -90,18 +96,18 @@ func Scan(entrophy_limit float64) (bool, error) {
 	)
 
 	// Run folder iteration
-	results, err := core.IterFolder(projectPath, filters)
+	err = result.IterFolder(projectPath, filters)
 	if err != nil {
 		return false, fmt.Errorf("scan failed: %w", err)
 	}
-
-	if core.IsFilenameMapEmpty(results) {
+	if result.IsFilenameMapEmpty() {
 		log.Println("No secrets found")
 		return false, nil
 	}
 
-	core.PrettyPrintResults(results)
-	if err := core.SaveFilenameMap(projectPath, results); err != nil {
+	result.PrettyPrintResults()
+
+	if err := core.SaveFilenameMap(projectPath, result.Get_filenameMap()); err != nil {
 		return true, fmt.Errorf("failed to save scan results: %w", err)
 	}
 	return true, nil
@@ -122,16 +128,11 @@ func runObfuscate() error {
 	return nil
 }
 
-func init() {
-	// add scanCmd to root
+func Init_cmd() {
 	rootCmd.AddCommand(scanCmd)
-	// add --ent_limit (default 5.0)
 	scanCmd.Flags().Float64VarP(&entLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
-	//add gitignoreCmd to root
 	rootCmd.AddCommand(gitignoreCmd)
-	//add obfuscateCmd to root
 	rootCmd.AddCommand(obfuscateCmd)
-	//add ExemptAdditor to root
 	rootCmd.AddCommand(ExemptAdditor)
 }
 
