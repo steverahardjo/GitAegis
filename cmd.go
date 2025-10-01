@@ -14,15 +14,14 @@ import (
 var result *core.ScanResult
 
 var rootCmd = &cobra.Command{
-    Use:   "gitaegis",
-    Short: "API key scanner in Go",
-    Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
-    Run: func(cmd *cobra.Command, args []string) {
-        result = &core.ScanResult{}
-        result.Init()
-    },
+	Use:   "gitaegis",
+	Short: "API key scanner in Go",
+	Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
+	Run: func(cmd *cobra.Command, args []string) {
+		result = &core.ScanResult{}
+		result.Init()
+	},
 }
-
 
 var entLimit float64
 
@@ -31,7 +30,11 @@ var scanCmd = &cobra.Command{
 	Short: "Scan the current directory for secrets",
 	Long:  "Scan the current directory for secrets using entropy and regex for api key",
 	Run: func(cmd *cobra.Command, args []string) {
-		found, err := scan(entLimit)
+		path, err := os.Getwd()
+		if err != nil {
+			log.Fatal("Unable to find the path GitAegis is being run", err)
+		}
+		found, err := Scan(entLimit, path)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -85,18 +88,16 @@ var ExemptAdditor = &cobra.Command{
 
 // Scan runs the secret detection on the current working directory.
 // It returns true if secrets were found, otherwise false.
-func scan(entrophy_limit float64) (bool, error) {
-	projectPath, err := os.Getwd()
-	if err != nil {
-		return false, fmt.Errorf("failed to get working directory: %w", err)
-	}
+func Scan(entrophy_limit float64, projectPath string) (bool, error) {
+	result = &core.ScanResult{}
+	result.Init()
+	result.Clear_Map()
 	filters := core.AllFilters(
-		core.EntropyFilter(entrophy_limit),
 		core.RegexFilter(),
 	)
 
 	// Run folder iteration
-	err = result.IterFolder(projectPath, filters)
+	err := result.IterFolder(projectPath, filters)
 	if err != nil {
 		return false, fmt.Errorf("scan failed: %w", err)
 	}
@@ -135,5 +136,3 @@ func Init_cmd() {
 	rootCmd.AddCommand(obfuscateCmd)
 	rootCmd.AddCommand(ExemptAdditor)
 }
-
-

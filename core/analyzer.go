@@ -83,15 +83,15 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter) (error) {
 		}
 		return nil
 	})
-
-	// Worker pool for parallel parsing
+		// Worker pool for parallel parsing
 	numWorkers := runtime.NumCPU()
 	fileCh := make(chan string, len(files))
 	var wg sync.WaitGroup
 
-	for i := 0; i < numWorkers; i++{
+	// Start workers
+	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go func(){
+		go func() {
 			defer wg.Done()
 			for filename := range fileCh {
 				tree, code, err := createTree(filename)
@@ -108,9 +108,19 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter) (error) {
 			}
 		}()
 	}
+
+	// Enqueue work
+	for _, f := range files {
+		fileCh <- f
+	}
 	close(fileCh)
+
 	wg.Wait()
 	return err
+}
+
+func(res *ScanResult) Clear_Map(){
+	res.filenameMap = make(map[string][]CodeLine)
 }
 
 
@@ -124,21 +134,32 @@ func (res *ScanResult) Get_filenameMap() map[string][]CodeLine {
 	return res.filenameMap
 }
 
-func (res *ScanResult)  PrettyPrintResults() {
+func (res *ScanResult) PrettyPrintResults() {
+	// ANSI colors
 	red := "\033[31m"
 	green := "\033[32m"
 	yellow := "\033[33m"
 	reset := "\033[0m"
 
-	fmt.Println(yellow + "GITAEGIS DETECTED THE FOLLOWING SECRETS\n===============================" + reset)
+	// Header
+	fmt.Println(yellow + "GITAEGIS DETECTED THE FOLLOWING SECRETS" + reset)
+	fmt.Println(yellow + "=======================================" + reset)
+
+	// Iterate over results
 	for filename, lines := range res.filenameMap {
 		fmt.Println(green + "File: " + filename + reset)
-		if len(lines) <= 0 {
+
+		if len(lines) == 0 {
 			continue
 		}
+
 		for _, line := range lines {
-			fmt.Printf("%s \t |\n Index: %d\n Line: %s%s\n", red, line.Index, line.Line, reset)
+			fmt.Printf("%s---------------------------------------%s\n", yellow, reset)
+			fmt.Printf("%sIndex:%s   %d\n", red, reset, line.Index)
+			fmt.Printf("%sLine:%s    %s\n", red, reset, line.Line)
+			fmt.Printf("%sEntropy:%s %.4f\n", red, reset, line.Entropy)
 		}
-		fmt.Println(green + "------------------------------" + reset)
+
+		fmt.Printf("%s================ END OF FILE =================%s\n\n", green, reset)
 	}
 }

@@ -1,0 +1,4 @@
+git reset HEAD~1        # undo the last commit but keep changes in working tree
+git reset HEAD "test.txt\\" # unstage just test.txt
+git add .               # re-stage everything else except test.txt
+git commit -m "smt is wrong with filtering, need to debug it"

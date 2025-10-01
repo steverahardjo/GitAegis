@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-
-	"GitAegis/core"
 )
 
 func main() {
@@ -16,14 +14,12 @@ func main() {
 		log.Fatal("failed to get home directory:", err)
 	}
 	projectPath := filepath.Join(home, "Documents", "Projects", "Personal", "exp_site")
-	// Setup filters
-	filters := core.AllFilters(
-		core.EntropyFilter(5.0),
-	)
-	// Run folder iteration
-	results, err := core.IterFolder(projectPath, filters)
-
-	// Pretty print the results
-	core.PrettyPrintResults(results)
+	var entLimit float64 = 5.0
+	found, err := Scan(entLimit, projectPath)
+	println("Entrophy Limit: ", entLimit)
+	if err != nil {
+		log.Fatal(err)
+	}
+	println(found)
 	fmt.Println("Scan complete!")
 }
