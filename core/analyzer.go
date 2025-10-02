@@ -48,7 +48,7 @@ func initGitIgnore() *gitignore.GitIgnore {
 	return ign
 }
 
-//filenameMap check if emptu {public}
+//filenameMap check if empty {public}
 func (res *ScanResult)IsFilenameMapEmpty() bool {
 	if res.filenameMap == nil {
 		return true
@@ -159,7 +159,5 @@ func (res *ScanResult) PrettyPrintResults() {
 			fmt.Printf("%sLine:%s    %s\n", red, reset, line.Line)
 			fmt.Printf("%sEntropy:%s %.4f\n", red, reset, line.Entropy)
 		}
-
-		fmt.Printf("%s================ END OF FILE =================%s\n\n", green, reset)
 	}
 }

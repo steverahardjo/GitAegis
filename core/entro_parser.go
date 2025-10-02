@@ -24,7 +24,7 @@ type LineFilter func(string) bool
 func EntropyFilter(threshold float64) LineFilter {
 	return func(s string) bool {
 		if calcEntropy(s) > threshold {
-			println(calcEntropy(s))
+			println("PAY ANTTETION TO THIS: ", calcEntropy(s))
 			return true
 		} else {
 			return false
@@ -47,13 +47,14 @@ func RegexFilter() LineFilter {
 func AllFilters(filters ...LineFilter) LineFilter {
 	return func(s string) bool {
 		for _, f := range filters {
-			if !f(s) {
+			if f(s) {
 				return true
 			}
 		}
 		return false
 	}
 }
+
 
 // calcEntropy computes Shannon entropy of a string
 func calcEntropy(line string) float64 {

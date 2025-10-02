@@ -110,9 +110,6 @@ func initGrammar(filename string) *sitter.Parser {
 	return parser
 }
 
-// --------------------
-// File parsing
-// --------------------
 
 // createTree parses a file and returns both the syntax tree and file content {private}
 func createTree(filename string) (*sitter.Tree, []byte, error) {
@@ -149,7 +146,7 @@ func walkParse(node *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 
 		content := child.Content(code)
 
-		if len(content) > 20 && len(content) <= 2048 && child.ChildCount() == 0 {
+		if child.ChildCount() == 0 {
 			if filter(content) {
 				start := child.StartPoint()
 				results = append(results, CodeLine{

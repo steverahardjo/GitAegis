@@ -91,9 +91,8 @@ var ExemptAdditor = &cobra.Command{
 func Scan(entrophy_limit float64, projectPath string) (bool, error) {
 	result = &core.ScanResult{}
 	result.Init()
-	result.Clear_Map()
-	filters := core.AllFilters(
-		core.RegexFilter(),
+	filters:= core.AllFilters(
+		core.EntropyFilter(entrophy_limit),
 	)
 
 	// Run folder iteration
