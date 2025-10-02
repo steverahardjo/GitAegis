@@ -16,11 +16,11 @@
 ---
 
 ## Priority 2 — Workflow Integration
-[ ] Enable actual Git pre-hooks instead of bashrc  
+[] Enable actual Git pre-hooks instead of bashrc  
    - `gitaegis init` should install a `.git/hooks/pre-commit` or `pre-push` hook.  
    - Prevents secrets from entering repo at commit time.  
 
-[ ] Enable obfuscation directly on `git add` (no manual undo)  
+[] Enable obfuscation directly on `git add` (no manual undo)  
    - Intercept staged files → obfuscate secrets → stage masked content.  
    - Undo step becomes optional.  
 
