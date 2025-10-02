@@ -1,27 +1,63 @@
-package core
+package main
 
 import (
-	"encoding/gob"
-	"fmt"
-	"log"
+	"encoding/json"
 	"os"
 	"path"
-	"strings"
+	"time"
 )
 
-// SaveFilenameMap saves the filename map (results from a scan) into a binary file.
-// The map stores file paths with their detected CodeLine entries.
-func SaveFilenameMap(root string, filenameMap map[string][]CodeLine) error {
-	filePath := path.Join(root, ".gitaegis")
+type CodeLine struct {
+	Line    string  `json:"line"`
+	Index   int     `json:"index"`
+	Column  int     `json:"column"`
+	Entropy float64 `json:"entropy"`
+}
+
+type JsonMetadata struct {
+	Timestamp string `json:"timestamp"`
+	Author    string `json:"author"`
+	Frequency int    `json:"freq"`
+}
+
+func SaveFilenameMap(root string, filenameMap map[string][]CodeLine, author string) error {
+	filePath := path.Join(root, ".gitaegis.jsonl")
+
+	// Create or truncate the file
 	f, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	enc := gob.NewEncoder(f)
-	gob.Register(CodeLine{})
-	return enc.Encode(filenameMap)
+	// Count total number of CodeLine objects
+	total := 0
+	for _, lines := range filenameMap {
+		total += len(lines)
+	}
+
+	// Create top-level object
+	topLevel := struct {
+		Meta JsonMetadata                 `json:"meta"`
+		Data map[string][]CodeLine `json:"data"`
+	}{
+		Meta: JsonMetadata{
+			Timestamp: time.Now().Format(time.RFC3339),
+			Author:    author,
+			Frequency: total,
+		},
+		Data: filenameMap,
+	}
+
+	// Marshal the whole object
+	data, err := json.MarshalIndent(topLevel, "", "  ") // pretty print
+	if err != nil {
+		return err
+	}
+
+	// Write to file
+	_, err = f.Write(data)
+	return err
 }
 
 // LoadFilenameMap loads a previously saved filename map from disk.
