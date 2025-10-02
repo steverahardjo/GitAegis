@@ -70,19 +70,5 @@ Bridge between core services and CLI (via Cobra):
 4. [go-gitignore](https://github.com/sabhiram/go-gitignore)  
 5. [purego](https://github.com/ebitengine/purego)  
 
----
-
-## Incoming Features
-1. Parallelism (`obfuscate`, `undoObfuscate`, `calcEntropy`)  
-2. Portable grammar loading (local or private GitHub repo)  
-3. Review/changing mechanism for `exemptAdditor`  
-4. **Fix bug** in `Allfilters` boolean union  
-5. Support other shells beyond bash (`zshrc`, `fish`)  
-6. Expand per-line filters  
-7. Enable obfuscation directly on `git add` (no manual undo)
-8. Hash secret instead of mask through obfuscate
-9. change blob.gitaegis into a json
-10. Enable actual git pre-hooks instead of bashrc
-11. sample based regex filter generator (easier: add a manual regex to be a filter through a config file)
 
 

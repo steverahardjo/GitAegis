@@ -5,13 +5,13 @@
    - Ensure multiple filters combine logically (AND/OR) without false positives.  
    - Foundation for reliable detection.  
 
-2. Expand per-line filters  
-   - Add entropy + regex hybrid filters.  
-   - Introduce severity scoring (info/warn/critical).  
-
-3. Sample-based regex filter generator  
+2. Sample-based regex filter generator  
    - Auto-generate regex candidates from detected strings.  
-   - Configurable manual regex rules via `.gitaegis.json`.  
+   - Configurable manual regex rules via `.gitaegis.yaml`. 
+
+3. Portable grammar loading  
+   - Bundle or fetch grammars from GitHub.  
+   - Allow custom grammars in config.   
 
 ---
 
@@ -40,10 +40,6 @@
 ## Priority 4 — Performance & Portability
 8. Parallelism (`obfuscate`, `undoObfuscate`, `calcEntropy`)  
    - Worker pool scanning for faster runs on large repos.  
-
-9. Portable grammar loading  
-   - Bundle or fetch grammars from GitHub.  
-   - Allow custom grammars in config.  
 
 ---
 
