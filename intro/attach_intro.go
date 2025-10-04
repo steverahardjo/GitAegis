@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 )
-
+// config to add bash script to run Scan before doing add
 var bashrcWrapper = `
 # >>> Git Aegis wrapper >>>
 function git() {
     if [[ "$1" == "add" ]]; then
         shift
-        git-aegis add "$@"
+        gitaegis add "$@"
     else
         command git "$@"
     fi
@@ -61,8 +61,4 @@ func detectAttachShellConfig() {
 	} else {
 		fmt.Println("No .bashrc file found in home directory")
 	}
-}
-
-func main() {
-	detectAttachShellConfig()
 }

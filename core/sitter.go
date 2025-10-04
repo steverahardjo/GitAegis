@@ -4,13 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ebitengine/purego"
-	sitter "github.com/smacker/go-tree-sitter"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"unsafe"
+	"sync"
+
+	"github.com/ebitengine/purego"
+	sitter "github.com/smacker/go-tree-sitter"
 )
 
 // GrammarConfig defines the structure of sitter.json
@@ -19,17 +23,23 @@ type GrammarConfig struct {
 	Filenames  map[string]string `json:"filenames"`
 }
 
-// --------------------
-// Grammar Loader
-// --------------------
+var (
+	sitterInit    sync.Once
+	sitterInitErr error
+	SitterMap     *GrammarConfig
+)
 
-// loadExtMap loads extension/filename mappings from a JSON config
+// loadExtMap fetches and unmarshals the sitter.json file
 func loadExtMap() (*GrammarConfig, error) {
-	configPath := "core/sitter.json"
-
-	data, err := os.ReadFile(configPath)
+	resp, err := http.Get("https://raw.githubusercontent.com/steverahardjo/GitAegis/main/core/sitter.json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read sitter.json: %w", err)
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
 	}
 
 	var cfg GrammarConfig
@@ -37,6 +47,14 @@ func loadExtMap() (*GrammarConfig, error) {
 		return nil, fmt.Errorf("invalid sitter.json: %w", err)
 	}
 	return &cfg, nil
+}
+
+// getExtMap lazily loads sitter.json once and caches it
+func getExtMap() (*GrammarConfig, error) {
+	sitterInit.Do(func() {
+		SitterMap, sitterInitErr = loadExtMap()
+	})
+	return SitterMap, sitterInitErr
 }
 
 // platformExt returns the correct shared object extension for the OS
@@ -53,7 +71,7 @@ func platformExt() string {
 
 // initGrammar initializes and returns a Tree-sitter parser for a given file.
 func initGrammar(filename string) *sitter.Parser {
-	cfg, err := loadExtMap()
+	cfg, err := getExtMap()
 	if err != nil {
 		fmt.Println("Error loading config:", err)
 		return nil
@@ -110,8 +128,7 @@ func initGrammar(filename string) *sitter.Parser {
 	return parser
 }
 
-
-// createTree parses a file and returns both the syntax tree and file content {private}
+// createTree parses a file and returns both the syntax tree and file content
 func createTree(filename string) (*sitter.Tree, []byte, error) {
 	parser := initGrammar(filename)
 	if parser == nil {
@@ -127,39 +144,45 @@ func createTree(filename string) (*sitter.Tree, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
 	return tree, data, nil
 }
 
-// walkParse recursively walks the AST without depth limit {private}
-func walkParse(node *sitter.Node, filter LineFilter, code []byte) []CodeLine {
+func walkParse(root *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 	results := []CodeLine{}
-	if node == nil {
+	if root == nil {
 		return results
 	}
 
-	for i := 0; i < int(node.NamedChildCount()); i++ {
-		child := node.NamedChild(i)
-		if child == nil {
+	stack := []*sitter.Node{root}
+
+	for len(stack) > 0 {
+		// Pop last element
+		n := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		// Process leaf
+		if n.ChildCount() == 0 {
+			content := n.Content(code)
+			if filter(content) {
+				start := n.StartPoint()
+				results = append(results, CodeLine{
+					Line:    content,
+					Index:   int(start.Row) + 1,
+					Column:  int(start.Column) + 1,
+					Entropy: CalcEntropy(content),
+				})
+			}
 			continue
 		}
 
-		content := child.Content(code)
-
-		if child.ChildCount() == 0 {
-			if filter(content) {
-				start := child.StartPoint()
-				results = append(results, CodeLine{
-					Line:   content,
-					Index:  int(start.Row) + 1,
-					Column: int(start.Column) + 1,
-					Entropy: calcEntropy(content),
-				})
+		// Push children in reverse so order matches recursion
+		for i := int(n.NamedChildCount()) - 1; i >= 0; i-- {
+			if c := n.NamedChild(i); c != nil {
+				stack = append(stack, c)
 			}
 		}
-		// Recursion
-		results = append(results, walkParse(child, filter, code)...)
 	}
 
 	return results
 }
+

@@ -1,18 +1,16 @@
-package main
+package core
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path"
 	"time"
+	"fmt"
+	"strings"
+	"os/user"
+	"path/filepath"
 )
-
-type CodeLine struct {
-	Line    string  `json:"line"`
-	Index   int     `json:"index"`
-	Column  int     `json:"column"`
-	Entropy float64 `json:"entropy"`
-}
 
 type JsonMetadata struct {
 	Timestamp string `json:"timestamp"`
@@ -20,27 +18,35 @@ type JsonMetadata struct {
 	Frequency int    `json:"freq"`
 }
 
-func SaveFilenameMap(root string, filenameMap map[string][]CodeLine, author string) error {
-	filePath := path.Join(root, ".gitaegis.jsonl")
+// Global struct for saving/loading
+type TopLevel struct {
+	Meta JsonMetadata            `json:"meta"`
+	Data map[string][]CodeLine   `json:"data"`
+}
 
-	// Create or truncate the file
+func SaveFilenameMap(root string, filenameMap map[string][]CodeLine) error {
+	filePath := filepath.Join(root, ".gitaegis.jsonl")
+
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+	author := u.Username
+
 	f, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	// Count total number of CodeLine objects
+	// Count total CodeLine entries
 	total := 0
 	for _, lines := range filenameMap {
 		total += len(lines)
 	}
 
-	// Create top-level object
-	topLevel := struct {
-		Meta JsonMetadata                 `json:"meta"`
-		Data map[string][]CodeLine `json:"data"`
-	}{
+	// Fill in top-level struct
+	topLevel := TopLevel{
 		Meta: JsonMetadata{
 			Timestamp: time.Now().Format(time.RFC3339),
 			Author:    author,
@@ -49,41 +55,70 @@ func SaveFilenameMap(root string, filenameMap map[string][]CodeLine, author stri
 		Data: filenameMap,
 	}
 
-	// Marshal the whole object
-	data, err := json.MarshalIndent(topLevel, "", "  ") // pretty print
+	// Marshal with indentation
+	data, err := json.MarshalIndent(topLevel, "", "  ")
 	if err != nil {
+		log.Fatal(err)
 		return err
 	}
-
-	// Write to file
 	_, err = f.Write(data)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	f.Sync()
+	
+	checkAddGitignore(root, ".gitaegis.jsonl")
 	return err
 }
 
-// LoadFilenameMap loads a previously saved filename map from disk.
-// If no file exists, it returns an empty map and no error.
 func LoadFilenameMap(root string) (map[string][]CodeLine, error) {
-	filePath := path.Join(root, ".gitaegis")
+	filePath := path.Join(root, ".gitaegis.jsonl")
+
 	f, err := os.Open(filePath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			// Return empty map if file does not exist
-			return make(map[string][]CodeLine), nil
-		}
 		return nil, err
 	}
 	defer f.Close()
 
-	dec := gob.NewDecoder(f)
-	gob.Register(CodeLine{})
-
-	filenameMap := make(map[string][]CodeLine)
-	if err := dec.Decode(&filenameMap); err != nil {
+	var topLevel TopLevel
+	if err := json.NewDecoder(f).Decode(&topLevel); err != nil {
 		return nil, err
 	}
-
-	return filenameMap, nil
+	return topLevel.Data, nil
 }
+
+func checkAddGitignore(root string, filename string) error {
+    ignorePath := filepath.Join(root, ".gitignore")
+
+    // Read existing .gitignore if it exists
+    var lines []string
+    if data, err := os.ReadFile(ignorePath); err == nil {
+        lines = strings.Split(string(data), "\n")
+        for _, line := range lines {
+            if strings.TrimSpace(line) == filename {
+                // already present
+                return nil
+            }
+        }
+    }
+
+    // Open (or create) .gitignore for appending
+    f, err := os.OpenFile(ignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+    if err != nil {
+        return err
+    }
+    defer f.Close()
+
+    // Append with newline
+    if _, err := f.WriteString(filename + "\n"); err != nil {
+        return err
+    }
+
+    return nil
+}
+
+
 
 // UpdateGitignore appends all saved file paths from the filename map into .gitignore.
 // It ensures that previously detected files are ignored in Git.
@@ -102,14 +137,13 @@ func UpdateGitignore() error {
 		return fmt.Errorf("unable to open .gitignore file: %w", err)
 	}
 	defer ignoreFile.Close()
-
 	for filename := range blob {
 		if _, err := ignoreFile.WriteString(filename + "\n"); err != nil {
 			return fmt.Errorf("failed to write to .gitignore: %w", err)
 		}
 		fmt.Printf("Added %s to .gitignore\n", filename)
 	}
-
+	ignoreFile.Sync()
 	fmt.Println("Updated .gitignore successfully.")
 	return nil
 }
@@ -133,7 +167,6 @@ func obfuscatePerLine(filename string, line CodeLine) error {
 }
 
 // LoadObfuscation obfuscates all lines previously detected and saved in the filename map.
-// This will overwrite files in-place with warnings on secret lines.
 func LoadObfuscation(root string) error {
 	x, err := LoadFilenameMap(root)
 	if err != nil {

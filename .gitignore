@@ -5,3 +5,5 @@ go.mod
 .gitaegis
 GitAegis.exe
 .env
+aegis.config.toml
+.gitaegis.jsonl

@@ -1,48 +1,66 @@
-// file created to string all core func and everything together as a cli cmd
 package main
 
 import (
+	"GitAegis/core"
 	"fmt"
 	"log"
 	"os"
-
-	"GitAegis/core"
+	"path/filepath"
+	"time"
 
 	cobra "github.com/spf13/cobra"
 )
 
-var result *core.ScanResult
+var (
+	result   *core.ScanResult
+	entLimit float64
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "gitaegis",
 	Short: "API key scanner in Go",
 	Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
-	Run: func(cmd *cobra.Command, args []string) {
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		result = &core.ScanResult{}
 		result.Init()
 	},
 }
 
-var entLimit float64
-
 var scanCmd = &cobra.Command{
-	Use:   "scan",
-	Short: "Scan the current directory for secrets",
-	Long:  "Scan the current directory for secrets using entropy and regex for api key",
+	Use:   "scan [path]",
+	Short: "Scan a directory or file for secrets",
+	Long:  "Scan a specified directory or file for secrets using entropy and regex for API keys. Defaults to the current directory if no path is provided.",
 	Run: func(cmd *cobra.Command, args []string) {
-		path, err := os.Getwd()
-		if err != nil {
-			log.Fatal("Unable to find the path GitAegis is being run", err)
+		var targetPath string
+
+		// Use provided path or fallback to current dir
+		if len(args) > 0 {
+			targetPath = args[0]
+		} else {
+			wd, err := os.Getwd()
+			if err != nil {
+				log.Fatal("Unable to get current working directory:", err)
+			}
+			targetPath = wd
 		}
-		found, err := Scan(entLimit, path)
+
+		absPath, err := filepath.Abs(targetPath)
+		if err != nil {
+			log.Fatal("Unable to resolve absolute path:", err)
+		}
+
+		fmt.Println("START SCANNING...")
+		fmt.Println("Target path:", absPath)
+
+		found, err := Scan(entLimit, absPath)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		if found {
-			fmt.Println("\n Secrets detected! You may run `gitaegis obfuscate` to mask them.")
+			fmt.Println("\n✅ Secrets detected! You may run `gitaegis obfuscate` to mask them.")
 		} else {
-			fmt.Println("\n No secrets found. Nothing to obfuscate.")
+			fmt.Println("\n🧹 No secrets found. Nothing to obfuscate.")
 		}
 	},
 }
@@ -50,7 +68,6 @@ var scanCmd = &cobra.Command{
 var gitignoreCmd = &cobra.Command{
 	Use:   "ignore",
 	Short: "Generate or update .gitignore from previous scan run",
-	Long:  "Generate or update .gitignore from previous scan run",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := core.UpdateGitignore(); err != nil {
 			log.Fatal(err)
@@ -61,7 +78,6 @@ var gitignoreCmd = &cobra.Command{
 var obfuscateCmd = &cobra.Command{
 	Use:   "obfuscate",
 	Short: "Obfuscate detected secrets in the codebase",
-	Long:  "Obfuscate detected secrets in the codebase by replacing them with placeholders",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := runObfuscate(); err != nil {
 			log.Fatal(err)
@@ -69,51 +85,76 @@ var obfuscateCmd = &cobra.Command{
 	},
 }
 
-var ExemptAdditor = &cobra.Command{
-	Use:   "add_exempt [files...]",
-	Short: "Add exemptions to the program",
-	Long:  "Add exemptions to the program so certain files will be ignored from scanning",
+var addCmd = &cobra.Command{
+	Use:   "add",
+	Short: "Scan before a git add",
+	Long:  "Couple GitAegis with git add to block commits containing secrets.",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			fmt.Println("\n No files specified. Usage: add_exempt <file1> <file2> ...")
-			return
+		if err := Add(args...); err != nil {
+			log.Fatal(err)
 		}
-		for _, file := range args {
-			result.AddExempt(file)
-		}
-
-		fmt.Println("\n Current exemption list:", core.Exempt)
 	},
 }
 
-// Scan runs the secret detection on the current working directory.
-// It returns true if secrets were found, otherwise false.
-func Scan(entrophy_limit float64, projectPath string) (bool, error) {
+func Add(paths ...string) error {
+	secretsFound, err := Scan(5.0, paths...)
+	if err != nil {
+		return fmt.Errorf("scan failed: %w", err)
+	}
+	if secretsFound {
+		return fmt.Errorf("secrets detected! aborting add")
+	}
+	for _, f := range paths {
+		if err := GitAdd(f); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Scan(entropyLimit float64, projectPaths ...string) (bool, error) {
+	if len(projectPaths) == 0 {
+		projectPaths = []string{"."}
+	}
+
 	result = &core.ScanResult{}
 	result.Init()
-	filters:= core.AllFilters(
-		core.EntropyFilter(entrophy_limit),
+
+	fmt.Println("Scanning paths:", projectPaths)
+	time.Sleep(1 * time.Second)
+
+	filters := core.AllFilters(
+		core.BasicFilter(),
+		core.EntropyFilter(entropyLimit),
 	)
 
-	// Run folder iteration
-	err := result.IterFolder(projectPath, filters)
-	if err != nil {
-		return false, fmt.Errorf("scan failed: %w", err)
+	foundSecrets := false
+
+	for _, path := range projectPaths {
+		err := result.IterFolder(path, filters)
+		if err != nil {
+			return foundSecrets, fmt.Errorf("scan failed for %s: %w", path, err)
+		}
 	}
+
 	if result.IsFilenameMapEmpty() {
-		log.Println("No secrets found")
 		return false, nil
 	}
 
 	result.PrettyPrintResults()
 
-	if err := core.SaveFilenameMap(projectPath, result.Get_filenameMap()); err != nil {
+	saveRoot, err := filepath.Abs(".")
+	if err != nil {
+		return true, fmt.Errorf("failed to resolve save path: %w", err)
+	}
+
+	if err := core.SaveFilenameMap(saveRoot, result.GetFilenameMap()); err != nil {
 		return true, fmt.Errorf("failed to save scan results: %w", err)
 	}
+
 	return true, nil
 }
 
-// runObfuscate replaces secret lines with placeholder text.
 func runObfuscate() error {
 	root, err := os.Getwd()
 	if err != nil {
@@ -132,6 +173,6 @@ func Init_cmd() {
 	rootCmd.AddCommand(scanCmd)
 	scanCmd.Flags().Float64VarP(&entLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
 	rootCmd.AddCommand(gitignoreCmd)
+	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(obfuscateCmd)
-	rootCmd.AddCommand(ExemptAdditor)
 }

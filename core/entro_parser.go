@@ -1,12 +1,10 @@
 package core
 
-// ------------------------------------
-// entro_parser.go
-// --------------------
-
 import (
 	"math"
 	"regexp"
+	"runtime"
+	"sync"
 )
 
 // CodeLine stores a matching line and its index
@@ -17,34 +15,65 @@ type CodeLine struct {
 	Entropy float64
 }
 
+// RegexFilter represents a regex + optional label
+type RegexFilter struct {
+	Header string
+	Regex  *regexp.Regexp
+}
+
 // LineFilter is a predicate that returns true if a line passes a check
 type LineFilter func(string) bool
 
-// entropyFilter returns a filter that checks if a line's entropy > threshold
+// EntropyFilter returns a filter that checks if a line's entropy > threshold
 func EntropyFilter(threshold float64) LineFilter {
 	return func(s string) bool {
-		if calcEntropy(s) > threshold {
-			println("PAY ANTTETION TO THIS: ", calcEntropy(s))
-			return true
-		} else {
+		return CalcEntropy(s) > threshold
+	}
+}
+
+// BasicFilter checks for minimum complexity: length, digits, cases, symbols
+func BasicFilter() LineFilter {
+	return func(s string) bool {
+		if len(s) < 15 {
 			return false
 		}
-	}
-}
+		hasDigit := regexp.MustCompile(`[0-9]`).MatchString(s)
+		hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(s)
+		hasLower := regexp.MustCompile(`[a-z]`).MatchString(s)
+		hasSymbol := regexp.MustCompile(`[^a-zA-Z0-9]`).MatchString(s)
 
-var apiKeyRegex = regexp.MustCompile(`[a-zA-Z0-9_.+/~$-][a-zA-Z0-9_.+/~$=!%:-]{10,1000}[a-zA-Z0-9_.+/=~$!%-]`)
-
-func RegexFilter() LineFilter {
-	return func(s string) bool {
-		if len(s) >= 24 && len(s) <= 51 {
-			return apiKeyRegex.MatchString(s)
+		// Require at least 3 out of 4 classes
+		classes := 0
+		if hasDigit {
+			classes++
 		}
-		return false
+		if hasUpper {
+			classes++
+		}
+		if hasLower {
+			classes++
+		}
+		if hasSymbol {
+			classes++
+		}
+		return classes >= 3
 	}
 }
 
-// allFilters combines multiple filters into one (logical AND)
+// AllFilters (AND)
 func AllFilters(filters ...LineFilter) LineFilter {
+	return func(s string) bool {
+		for _, f := range filters {
+			if !f(s) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+// AnyFilters (OR)
+func AnyFilters(filters ...LineFilter) LineFilter {
 	return func(s string) bool {
 		for _, f := range filters {
 			if f(s) {
@@ -55,25 +84,101 @@ func AllFilters(filters ...LineFilter) LineFilter {
 	}
 }
 
+// AddRegexFilters builds a filter from regex patterns
+func AddRegexFilters(patterns []RegexFilter) LineFilter {
+	return func(s string) bool {
+		for _, rf := range patterns {
+			if rf.Regex.MatchString(s) {
+				return true
+			}
+		}
+		return false
+	}
+}
 
-// calcEntropy computes Shannon entropy of a string
-func calcEntropy(line string) float64 {
-	if len(line) == 0 {
+// CalcEntropy computes Shannon entropy safely
+func CalcEntropyParallel(line string) float64 {
+	x := len(line)
+	if x == 0 {
 		return 0.0
 	}
 
-	uniqCounter := make(map[rune]int)
-	for _, r := range line {
-		uniqCounter[r]++
+	numCPU := runtime.NumCPU()
+	chunkSize := (x + numCPU - 1) / numCPU
+	/*	
+	if 300 > x{
+		return calcEntropySingle(line)
+	}*/
+
+	var wg sync.WaitGroup
+	wg.Add(numCPU)
+
+	chResults := make(chan [256]float64, numCPU)
+
+	for i := 0; i < numCPU; i++ {
+		go func(chunkNum int) {
+			defer wg.Done()
+			var uniqCounter [256]float64
+
+			start := chunkNum * chunkSize
+			end := start + chunkSize
+			if end > x {
+				end = x
+			}
+			if start >= end {
+				chResults <- uniqCounter
+				return
+			}
+			for _, val := range line[start:end] {
+				uniqCounter[val]++
+			}
+			chResults <- uniqCounter
+		}(i)
 	}
 
-	length := float64(len(line))
+	go func() {
+		wg.Wait()
+		close(chResults)
+	}()
+
+	var totalFreq [256]float64
+	for freqArray := range chResults {
+		for j, val := range freqArray {
+			totalFreq[j] += val
+		}
+	}
+
+	length := float64(x)
 	entropy := 0.0
-
-	for _, count := range uniqCounter {
-		p := float64(count) / length
-		entropy -= p * math.Log2(p)
+	for _, count := range totalFreq {
+		if count > 0 {
+			p := count / length
+			entropy -= p * math.Log2(p)
+		}
 	}
 
+	if math.IsNaN(entropy) || math.IsInf(entropy, 0) {
+		return 0.0
+	}
 	return entropy
+}
+
+func CalcEntropy(line string) float64 {
+    freq := make(map[rune]float64)
+    for _, val := range line {
+        freq[val]++
+    }
+    length := float64(len(line))
+    if length == 0 {
+        return 0.0
+    }
+
+    entropy := 0.0
+    for _, count := range freq {
+        if count > 0 {
+            p := count / length
+            entropy -= p * math.Log2(p)
+        }
+    }
+    return entropy
 }

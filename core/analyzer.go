@@ -2,93 +2,110 @@ package core
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
-	"log"
-	"sync"
 	"runtime"
+	"sync"
 
 	gitignore "github.com/sabhiram/go-gitignore"
 )
 
-type ScanResult struct{
+type ScanResult struct {
 	filenameMap map[string][]CodeLine
-	mutex sync.Mutex
-	exempt []string
+	mutex       sync.Mutex
+	exempt      map[string]struct{} // use set instead of slice
 }
 
-// language specific exemption
-var Exempt = []string{"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json", "yarn.lock", "go.sum", "deno.lock", "Cargo.lock", ".gitignore", ".python-version"}
+// language specific exemption (defaults)
+var DefaultExempt = []string{
+	"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json",
+	"yarn.lock", "go.sum", "deno.lock", "Cargo.lock",
+	".gitignore", ".python-version", "LICENSE", ".gitaegis.jsonl",
+}
 
 func (res *ScanResult) Init() {
 	res.filenameMap = make(map[string][]CodeLine)
-	res.exempt = Exempt
-}
-
-func (res *ScanResult)AddExempt(file string) {
-	for _, f := range Exempt {
-		if f == file {
-			fmt.Println("File is already exempted.")
-		}
+	res.exempt = make(map[string]struct{})
+	for _, f := range DefaultExempt {
+		res.exempt[f] = struct{}{}
 	}
-	Exempt = append(res.exempt, file)
 }
 
+// AddExempt adds a new exempt file to the set.
+func (res *ScanResult) AddExempt(file string) {
+	if _, exists := res.exempt[file]; exists {
+		fmt.Println("File is already exempted.")
+		return
+	}
+	res.exempt[file] = struct{}{}
+}
 
-// Load .gitignore once {private}
+// Load .gitignore once
 func initGitIgnore() *gitignore.GitIgnore {
 	ign, err := gitignore.CompileIgnoreFile(".gitignore")
 	if err != nil {
 		if os.IsNotExist(err) {
-			// no .gitignore: create empty matcher
-			return gitignore.CompileIgnoreLines()
+			return gitignore.CompileIgnoreLines() // no .gitignore: return empty matcher
 		}
 		log.Fatalf("Error loading .gitignore: %v", err)
 	}
 	return ign
 }
 
-//filenameMap check if empty {public}
-func (res *ScanResult)IsFilenameMapEmpty() bool {
-	if res.filenameMap == nil {
-		return true
-	}
-	return false
+// IsFilenameMapEmpty returns true if no results are stored
+func (res *ScanResult) IsFilenameMapEmpty() bool {
+	return len(res.filenameMap) == 0
 }
 
-func isExempt(filename string) bool {
-	for _, ex := range Exempt {
-		if filepath.Base(filename) == ex {
-			return true
-		}
-	}
-	return false
+func (res *ScanResult) isExempt(filename string) bool {
+	_, ok := res.exempt[filepath.Base(filename)]
+	return ok
 }
 
-// Main folder walker (parallelized) {public}
-func (res *ScanResult) IterFolder(root string, filter LineFilter) (error) {
+func isExecutable(filename string) bool {
+	absPath, err := filepath.Abs(filename)
+	if err != nil {
+		return false
+	}
+
+	info, err := os.Stat(absPath)
+	if err != nil {
+		return false
+	}
+	// Check if any execute bit is set (owner, group, or other)
+	return info.Mode().Perm()&0111 != 0
+}
+// IterFolder walks a directory and processes files in parallel
+func (res *ScanResult) IterFolder(root string, filter LineFilter) error {
 	ign := initGitIgnore()
 
-	// Collect all file paths first
+	// Collect files first
 	var files []string
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if ignoreFiles(p, ign) || isExempt(p) {
+		if d.IsDir() {
 			return nil
 		}
-		if !d.IsDir() {
-			files = append(files, p)
+		if ignoreFiles(p, ign) || res.isExempt(p) || isExecutable(p){
+			return nil
 		}
+		files = append(files, p)
 		return nil
 	})
-		// Worker pool for parallel parsing
+	if err != nil {
+		return err
+	}
+
+	println(files)
+
+	// Worker pool
 	numWorkers := runtime.NumCPU()
 	fileCh := make(chan string, len(files))
 	var wg sync.WaitGroup
 
-	// Start workers
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
 		go func() {
@@ -109,49 +126,41 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter) (error) {
 		}()
 	}
 
-	// Enqueue work
 	for _, f := range files {
 		fileCh <- f
 	}
 	close(fileCh)
-
 	wg.Wait()
-	return err
+
+	return nil
 }
 
-func(res *ScanResult) Clear_Map(){
+func (res *ScanResult) ClearMap() {
 	res.filenameMap = make(map[string][]CodeLine)
 }
 
-
-
-// Private function to check ignores
 func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
 	return ign.MatchesPath(path)
 }
 
-func (res *ScanResult) Get_filenameMap() map[string][]CodeLine {
+func (res *ScanResult) GetFilenameMap() map[string][]CodeLine {
 	return res.filenameMap
 }
 
+// PrettyPrintResults prints results nicely with colors
 func (res *ScanResult) PrettyPrintResults() {
-	// ANSI colors
-	red := "\033[31m"
-	green := "\033[32m"
-	yellow := "\033[33m"
-	reset := "\033[0m"
+	const (
+		red    = "\033[31m"
+		green  = "\033[32m"
+		yellow = "\033[33m"
+		reset  = "\033[0m"
+	)
 
-	// Header
-	fmt.Println(yellow + "GITAEGIS DETECTED THE FOLLOWING SECRETS" + reset)
-	fmt.Println(yellow + "=======================================" + reset)
+	fmt.Printf("%sGITAEGIS DETECTED THE FOLLOWING SECRETS%s\n", yellow, reset)
+	fmt.Printf("%s=======================================%s\n", yellow, reset)
 
-	// Iterate over results
 	for filename, lines := range res.filenameMap {
-		fmt.Println(green + "File: " + filename + reset)
-
-		if len(lines) == 0 {
-			continue
-		}
+		fmt.Printf("\n%sFile:%s %s\n", green, reset, filename)
 
 		for _, line := range lines {
 			fmt.Printf("%s---------------------------------------%s\n", yellow, reset)

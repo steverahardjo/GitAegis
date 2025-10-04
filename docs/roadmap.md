@@ -1,9 +1,11 @@
 # GitAegis Roadmap
 
 ## Priority 1 — Core Correctness & Detection
-- [ ] Fix bug in `Allfilters` boolean union  
+- [x] Fix bug in `Allfilters` boolean union  
    - Ensure multiple filters combine logically (AND/OR) without false positives.  
    - Foundation for reliable detection.  
+
+- [x] Enable parallelism in `CalcEntrophy`
 
 - [ ] Sample-based regex filter generator  
    - Auto-generate regex candidates from detected strings.  
@@ -27,7 +29,7 @@
 ---
 
 ## Priority 3 — Config & Persistence
-- [ ] Change `blob.gitaegis` format into JSON  
+- [x] Change `blob.gitaegis` format into JSON  
    - Human-readable, portable, and easy to parse in CI/CD.  
    - Enables audit trail and integration with other tools.  
 
