@@ -43,6 +43,7 @@ var scanCmd = &cobra.Command{
 			}
 			targetPath = wd
 		}
+        logging, _ := cmd.Flags().GetBool("logging")
 
 		absPath, err := filepath.Abs(targetPath)
 		if err != nil {
@@ -52,7 +53,7 @@ var scanCmd = &cobra.Command{
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)
 
-		found, err := Scan(entLimit, absPath)
+		found, err := Scan(entLimit, logging, absPath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -97,7 +98,7 @@ var addCmd = &cobra.Command{
 }
 
 func Add(paths ...string) error {
-	secretsFound, err := Scan(5.0, paths...)
+	secretsFound, err := Scan(5.0, logging, paths...)
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
 	}
@@ -112,7 +113,7 @@ func Add(paths ...string) error {
 	return nil
 }
 
-func Scan(entropyLimit float64, projectPaths ...string) (bool, error) {
+func Scan(entropyLimit float64, logging bool, projectPaths ...string) (bool, error) {
 	if len(projectPaths) == 0 {
 		projectPaths = []string{"."}
 	}
@@ -147,9 +148,10 @@ func Scan(entropyLimit float64, projectPaths ...string) (bool, error) {
 	if err != nil {
 		return true, fmt.Errorf("failed to resolve save path: %w", err)
 	}
-
+	if logging == true{
 	if err := core.SaveFilenameMap(saveRoot, result.GetFilenameMap()); err != nil {
 		return true, fmt.Errorf("failed to save scan results: %w", err)
+	}
 	}
 
 	return true, nil
@@ -172,6 +174,7 @@ func runObfuscate() error {
 func Init_cmd() {
 	rootCmd.AddCommand(scanCmd)
 	scanCmd.Flags().Float64VarP(&entLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
+	scanCmd.Flags().Bool("logging", false, "log")
 	rootCmd.AddCommand(gitignoreCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(obfuscateCmd)
