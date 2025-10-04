@@ -99,8 +99,6 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter) error {
 		return err
 	}
 
-	println(files)
-
 	// Worker pool
 	numWorkers := runtime.NumCPU()
 	fileCh := make(chan string, len(files))
@@ -111,13 +109,12 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter) error {
 		go func() {
 			defer wg.Done()
 			for filename := range fileCh {
-				//tree, code, err := createTree(filename)
+				tree, code, err := createTree(filename)
 				if err != nil {
 					res.PerLineScan(filename, filter)
 					continue
 				}
-				lines:= res.PerLineScan(filename, filter)
-				//lines := walkParse(tree.RootNode(), filter, code)
+				lines := walkParse(tree.RootNode(), filter, code)
 				if len(lines) > 0 {
 					res.mutex.Lock()
 					res.filenameMap[filename] = lines

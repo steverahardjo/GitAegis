@@ -91,13 +91,14 @@ var addCmd = &cobra.Command{
 	Short: "Scan before a git add",
 	Long:  "Couple GitAegis with git add to block commits containing secrets.",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := Add(args...); err != nil {
+		logging, _ := cmd.Flags().GetBool("logging")
+		if err := Add(logging, args...); err != nil {
 			log.Fatal(err)
 		}
 	},
 }
 
-func Add(paths ...string) error {
+func Add(logging bool, paths ...string) error {
 	secretsFound, err := Scan(5.0, logging, paths...)
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)

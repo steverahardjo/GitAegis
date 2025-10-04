@@ -5,26 +5,23 @@
    - Ensure multiple filters combine logically (AND/OR) without false positives.  
    - Foundation for reliable detection.  
 
-- [x] Enable parallelism in `CalcEntrophy`
+- [x] Enable parallelism in `CalcEntrophy` <span style="color:red;">(NEED TO FIX BUGS ON MUTEX INDEX ACCESS)</span>
 
-- [ ] Sample-based regex filter generator  
-   - Auto-generate regex candidates from detected strings.  
-   - Configurable manual regex rules via `.gitaegis.yaml`. 
-
-- [ ] Portable grammar loading  
+- [i] Portable grammar loading  
    - Bundle or fetch grammars from GitHub.  
-   - Allow custom grammars in config.   
+   - Allow custom grammars in config.
+   - have made a fallback for lineScanning, thinking of user-choice access by input the tree-sitter files through a cmd
 
 ---
 
 ## Priority 2 — Workflow Integration
-- [ ] Enable actual Git pre-hooks instead of bashrc  
-   - `gitaegis init` should install a `.git/hooks/pre-commit` or `pre-push` hook.  
-   - Prevents secrets from entering repo at commit time.  
+- [ ] Sample-based regex filter generator  
+   - Auto-generate regex candidates from detected strings.  
+   - Configurable manual regex rules via `.gitaegis.config.toml`. 
 
-- [ ] Enable obfuscation directly on `git add` (no manual undo)  
-   - Intercept staged files → obfuscate secrets → stage masked content.  
-   - Undo step becomes optional.  
+- [ ] Review/changing mechanism for `exemptAdditor`  
+   - Move exemption management into config file.  
+   - Allow bulk exemptions and reversible actions.
 
 ---
 
@@ -33,9 +30,13 @@
    - Human-readable, portable, and easy to parse in CI/CD.  
    - Enables audit trail and integration with other tools.  
 
-- [ ] Review/changing mechanism for `exemptAdditor`  
-   - Move exemption management into config file.  
-   - Allow bulk exemptions and reversible actions.  
+- [ ] Enable actual Git pre-hooks instead of bashrc  
+   - `gitaegis init` should install a `.git/hooks/pre-commit` or `pre-push` hook.  
+   - Prevents secrets from entering repo at commit time.  
+
+- [ ] Enable obfuscation directly on `git add` (no manual undo)  
+   - Intercept staged files → obfuscate secrets → stage masked content.  
+   - Undo step becomes optional.  
 
 ---
 
