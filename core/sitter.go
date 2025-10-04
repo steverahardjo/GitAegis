@@ -31,7 +31,7 @@ var (
 
 // loadExtMap fetches and unmarshals the sitter.json file
 func loadExtMap() (*GrammarConfig, error) {
-	resp, err := http.Get("https://raw.githubusercontent.com/steverahardjo/GitAegis/main/core/sitter.json")
+	resp, err := http.Get("https://raw.githubusercontent.com/steverahardjo/GitAegis/cli-enabled/core/sitter.json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read sitter.json: %w", err)
 	}
@@ -96,7 +96,6 @@ func initGrammar(filename string) *sitter.Parser {
 		langFile, ok = cfg.Filenames[base]
 	}
 	if !ok {
-		fmt.Println("No grammar found for:", filename)
 		return nil
 	}
 
@@ -146,7 +145,7 @@ func createTree(filename string) (*sitter.Tree, []byte, error) {
 	}
 	return tree, data, nil
 }
-
+//Run a DFS to walk through the tree and get leaf node
 func walkParse(root *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 	results := []CodeLine{}
 	if root == nil {
@@ -156,11 +155,9 @@ func walkParse(root *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 	stack := []*sitter.Node{root}
 
 	for len(stack) > 0 {
-		// Pop last element
 		n := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
-
-		// Process leaf
+		
 		if n.ChildCount() == 0 {
 			content := n.Content(code)
 			if filter(content) {

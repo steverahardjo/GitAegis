@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
-
+	"strings"
 	gitignore "github.com/sabhiram/go-gitignore"
 )
 
@@ -111,12 +111,13 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter) error {
 		go func() {
 			defer wg.Done()
 			for filename := range fileCh {
-				tree, code, err := createTree(filename)
+				//tree, code, err := createTree(filename)
 				if err != nil {
-					log.Printf("Error parsing %s: %v", filename, err)
+					res.PerLineScan(filename, filter)
 					continue
 				}
-				lines := walkParse(tree.RootNode(), filter, code)
+				lines:= res.PerLineScan(filename, filter)
+				//lines := walkParse(tree.RootNode(), filter, code)
 				if len(lines) > 0 {
 					res.mutex.Lock()
 					res.filenameMap[filename] = lines
@@ -146,6 +147,34 @@ func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
 func (res *ScanResult) GetFilenameMap() map[string][]CodeLine {
 	return res.filenameMap
 }
+///fallback if we can't use treesitter
+func (res *ScanResult) PerLineScan(filename string, filter LineFilter) []CodeLine {
+    data, err := os.ReadFile(filename)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    lines := strings.Split(string(data), "\n")
+    var matched []CodeLine
+
+    for i, line := range lines {
+        // Split line by spaces
+        sublines := strings.Fields(line) // Fields splits by any whitespace
+
+        for _, sub := range sublines {
+            if filter(sub) {
+                matched = append(matched, CodeLine{
+                    Line:    sub,
+                    Index:   i + 1,
+                    Entropy: CalcEntropy(sub),
+                })
+            }
+        }
+    }
+
+    return matched
+}
+
 
 // PrettyPrintResults prints results nicely with colors
 func (res *ScanResult) PrettyPrintResults() {

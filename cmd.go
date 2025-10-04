@@ -58,9 +58,9 @@ var scanCmd = &cobra.Command{
 		}
 
 		if found {
-			fmt.Println("\n✅ Secrets detected! You may run `gitaegis obfuscate` to mask them.")
+			fmt.Println("\nSecrets detected! You may run `gitaegis obfuscate` to mask them.")
 		} else {
-			fmt.Println("\n🧹 No secrets found. Nothing to obfuscate.")
+			fmt.Println("\nNo secrets found. Nothing to obfuscate.")
 		}
 	},
 }
