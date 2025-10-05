@@ -7,3 +7,5 @@ GitAegis.exe
 .env
 aegis.config.toml
 .gitaegis.jsonl
+# Added by goreleaser init:
+dist/
