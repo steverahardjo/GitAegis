@@ -48,14 +48,17 @@ gitaegis add .
 git commit
 ```
 
-Or follow your project's specific instructions.
+## Future Release Plan
+1. Diverse line filter and exemption filter
+2. Integration with git pre-hook
+3. Ability to obfuscate the added file blob directly through the git add API
+4. A toml config file for big project use, loading mechanism, and conventional use
 
 ## Contributing
 Contributions and improvement ideas are welcome.
 Way to do it: 
-1. FOrk the repo
+1. Fork the repo
 2. Create a new branch, commit, and push on said branch
-3. We will review said changes
 
 ## License
 This project is licensed under the [MIT license](LICENSE)
