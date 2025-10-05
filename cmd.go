@@ -1,8 +1,8 @@
 package main
 
 import (
-	"GitAegis/core"
 	"fmt"
+	core "github.com/steverahardjo/GitAegis/core"
 	"log"
 	"os"
 	"path/filepath"
@@ -43,7 +43,7 @@ var scanCmd = &cobra.Command{
 			}
 			targetPath = wd
 		}
-        logging, _ := cmd.Flags().GetBool("logging")
+		logging, _ := cmd.Flags().GetBool("logging")
 
 		absPath, err := filepath.Abs(targetPath)
 		if err != nil {
@@ -149,10 +149,10 @@ func Scan(entropyLimit float64, logging bool, projectPaths ...string) (bool, err
 	if err != nil {
 		return true, fmt.Errorf("failed to resolve save path: %w", err)
 	}
-	if logging == true{
-	if err := core.SaveFilenameMap(saveRoot, result.GetFilenameMap()); err != nil {
-		return true, fmt.Errorf("failed to save scan results: %w", err)
-	}
+	if logging == true {
+		if err := core.SaveFilenameMap(saveRoot, result.GetFilenameMap()); err != nil {
+			return true, fmt.Errorf("failed to save scan results: %w", err)
+		}
 	}
 
 	return true, nil
