@@ -1,4 +1,4 @@
-module GitAegis
+module github.com/steverahardjo/GitAegis
 
 go 1.24.5
 
