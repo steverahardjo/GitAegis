@@ -3,7 +3,7 @@
 GitAegis helps developers maintain clean and secure repositories by scanning source code for potential API keys, tokens, or sensitive data before committing.
 It’s designed for simplicity, speed, and easy integration into existing Git workflows.
 ## Features
--Secret Detection: Identify API keys, tokens, and sensitive patterns using **Shannon Entrophy** and **Regular expression**.
+- Secret Detection: Identify API keys, tokens, and sensitive patterns using **Shannon Entrophy** and **Regular expression**.
 - Utilizing Go's  goroutine concurrency for high performance.
 - Lightweight integration through a **CLI interface**.
 - A logging written into a JSON file
