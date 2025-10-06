@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unsafe"
 	"sync"
-
+	"errors"
 	"github.com/ebitengine/purego"
 	sitter "github.com/smacker/go-tree-sitter"
 )
@@ -27,7 +27,42 @@ var (
 	sitterInit    sync.Once
 	sitterInitErr error
 	SitterMap     *GrammarConfig
+	sitter_path string
 )
+
+func IntegrateTreeSitter(homePath string) error {
+	sitterInit.Do(func() {
+		if homePath == "" {
+			sitterInitErr = errors.New("tree-sitter path cannot be empty")
+			return
+		}
+
+		// Clean and make absolute
+		absPath, err := filepath.Abs(filepath.Clean(homePath))
+		if err != nil {
+			sitterInitErr = err
+			return
+		}
+
+		// Check if the path exists and is a directory
+		info, err := os.Stat(absPath)
+		if err != nil {
+			sitterInitErr = errors.New("tree-sitter path does not exist")
+			return
+		}
+		if !info.IsDir() {
+			sitterInitErr = errors.New("tree-sitter path must be a directory")
+			return
+		}
+		
+		sitter_path = absPath
+
+		SitterMap = &GrammarConfig{}
+	})
+
+	return sitterInitErr
+}
+
 
 // loadExtMap fetches and unmarshals the sitter.json file
 func loadExtMap() (*GrammarConfig, error) {
@@ -44,7 +79,7 @@ func loadExtMap() (*GrammarConfig, error) {
 
 	var cfg GrammarConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("invalid sitter.json: %w", err)
+		return nil, errors.New("invalid sitter.json")
 	}
 	return &cfg, nil
 }
@@ -76,15 +111,7 @@ func initGrammar(filename string) *sitter.Parser {
 		fmt.Println("Error loading config:", err)
 		return nil
 	}
-
-	// Always resolve grammar dir from HOME to avoid relative path issues
-	home, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Println("Error resolving home directory:", err)
-		return nil
-	}
-	grammarDir := filepath.Join(home, ".private", "helix", "runtime", "grammars")
-
+	
 	parser := sitter.NewParser()
 
 	// lookup by extension
@@ -103,7 +130,7 @@ func initGrammar(filename string) *sitter.Parser {
 	langBase := strings.TrimSuffix(langFile, ".so")
 
 	// Build full .so path
-	soPath := filepath.Join(grammarDir, langFile)
+	soPath := filepath.Join(sitter_path, langFile)
 
 	lib, dlErr := purego.Dlopen(soPath, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if dlErr != nil {

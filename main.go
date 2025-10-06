@@ -2,10 +2,11 @@ package main
 
 import (
 	"log"
+	"fronte"
 )
 
 func main() {
-	Init_cmd()
+	frontend.Init_cmd()
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}

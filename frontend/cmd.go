@@ -1,4 +1,4 @@
-package main
+package frontend
 
 import (
 	"fmt"
@@ -6,14 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	cobra "github.com/spf13/cobra"
-)
-
-var (
-	result   *core.ScanResult
-	entLimit float64
 )
 
 var rootCmd = &cobra.Command{
@@ -21,8 +15,8 @@ var rootCmd = &cobra.Command{
 	Short: "API key scanner in Go",
 	Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		result = &core.ScanResult{}
-		result.Init()
+		global_result = &core.ScanResult{}
+		global_result.Init()
 	},
 }
 
@@ -98,78 +92,18 @@ var addCmd = &cobra.Command{
 	},
 }
 
-func Add(logging bool, paths ...string) error {
-	secretsFound, err := Scan(5.0, logging, paths...)
-	if err != nil {
-		return fmt.Errorf("scan failed: %w", err)
-	}
-	if secretsFound {
-		return fmt.Errorf("secrets detected! aborting add")
-	}
-	for _, f := range paths {
-		if err := GitAdd(f); err != nil {
-			return err
+
+
+var sitter = &cobra.Command{
+	Use:   "sitter",
+	Short: "Integrate tree-sitter grammars to be used as parser in GitAegis",
+	Long:  "Integrating local tree-sitter grammar into gitaegis (ideal if user use nvim/helix/zed)",
+	Run: func(cmd *cobra.Command, args []string) {
+		logging, _ := cmd.Flags().GetBool("logging")
+		if err := Add(logging, args...); err != nil {
+			log.Fatal(err)
 		}
-	}
-	return nil
-}
-
-func Scan(entropyLimit float64, logging bool, projectPaths ...string) (bool, error) {
-	if len(projectPaths) == 0 {
-		projectPaths = []string{"."}
-	}
-
-	result = &core.ScanResult{}
-	result.Init()
-
-	fmt.Println("Scanning paths:", projectPaths)
-	time.Sleep(1 * time.Second)
-
-	filters := core.AllFilters(
-		core.BasicFilter(),
-		core.EntropyFilter(entropyLimit),
-	)
-
-	foundSecrets := false
-
-	for _, path := range projectPaths {
-		err := result.IterFolder(path, filters)
-		if err != nil {
-			return foundSecrets, fmt.Errorf("scan failed for %s: %w", path, err)
-		}
-	}
-
-	if result.IsFilenameMapEmpty() {
-		return false, nil
-	}
-
-	result.PrettyPrintResults()
-
-	saveRoot, err := filepath.Abs(".")
-	if err != nil {
-		return true, fmt.Errorf("failed to resolve save path: %w", err)
-	}
-	if logging == true {
-		if err := core.SaveFilenameMap(saveRoot, result.GetFilenameMap()); err != nil {
-			return true, fmt.Errorf("failed to save scan results: %w", err)
-		}
-	}
-
-	return true, nil
-}
-
-func runObfuscate() error {
-	root, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	if err := core.LoadObfuscation(root); err != nil {
-		return fmt.Errorf("failed to obfuscate secrets: %w", err)
-	}
-
-	fmt.Println("✅ Secrets obfuscated successfully.")
-	return nil
+	},
 }
 
 func Init_cmd() {

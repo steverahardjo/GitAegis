@@ -46,7 +46,7 @@ func initGitIgnore() *gitignore.GitIgnore {
 	ign, err := gitignore.CompileIgnoreFile(".gitignore")
 	if err != nil {
 		if os.IsNotExist(err) {
-			return gitignore.CompileIgnoreLines() // no .gitignore: return empty matcher
+			return gitignore.CompileIgnoreLines()
 		}
 		log.Fatalf("Error loading .gitignore: %v", err)
 	}
@@ -77,8 +77,11 @@ func isExecutable(filename string) bool {
 	return info.Mode().Perm()&0111 != 0
 }
 // IterFolder walks a directory and processes files in parallel
-func (res *ScanResult) IterFolder(root string, filter LineFilter) error {
-	ign := initGitIgnore()
+func (res *ScanResult) IterFolder(root string, filter LineFilter, is_gitignore bool, max_filesize int64) error {
+	var ign *gitignore.GitIgnore
+	if is_gitignore == true{
+		ign = initGitIgnore()
+	}
 
 	// Collect files first
 	var files []string
@@ -92,6 +95,15 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter) error {
 		if ignoreFiles(p, ign) || res.isExempt(p) || isExecutable(p){
 			return nil
 		}
+		info, err := os.Stat(p)
+		if err != nil{
+			log.Fatal("Unable to get file size inside of core.IterFolder")
+		}
+		if i
+		nfo.Size() > max_filesize{
+			return nil
+		}
+
 		files = append(files, p)
 		return nil
 	})
