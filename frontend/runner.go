@@ -23,7 +23,12 @@ func Add(logging bool, paths ...string) error {
 	}
 	return nil
 }
-
+//Runner function in the frontend that stick together all corev functions
+//Args:
+// - entrophy_limit:float64
+// - logging: bool = do log using .json/not
+// - global_gitignore = load_gitignore or not
+// - filesize_limit:int = size 
 func Scan(entropyLimit float64, logging bool, global_gitignore bool, filesize_limit int, projectPaths ...string) (bool, error) {
 	if len(projectPaths) == 0 {
 		projectPaths = []string{"."}
@@ -43,7 +48,7 @@ func Scan(entropyLimit float64, logging bool, global_gitignore bool, filesize_li
 	foundSecrets := false
 
 	for _, path := range projectPaths {
-		err := global_result.IterFolder(path, filters)
+		err := global_result.IterFolder(path, filters, global_gitignore, int64(filesize_limit))
 		if err != nil {
 			return foundSecrets, fmt.Errorf("scan failed for %s: %w", path, err)
 		}

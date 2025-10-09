@@ -11,7 +11,7 @@ var (
 	global_logging        bool    = true
 	global_git_integration bool   = false
 	global_gitignore      bool    = true
-	global_filemaxsize    int64   = 500 // default in KB
+	global_filemaxsize    int64   = 500
 	sitter_path           string
 	targetRegex           map[string]string
 	lineExemptions        map[string]string

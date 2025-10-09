@@ -47,7 +47,6 @@ func (c *Config )IntegrateConfig(){
 	global_filemaxsize = int64(c.Filter.MaxFileSize)
 	
 	}
-}
 
 
 

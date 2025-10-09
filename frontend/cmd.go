@@ -47,7 +47,7 @@ var scanCmd = &cobra.Command{
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)
 
-		found, err := Scan(entLimit, logging, absPath)
+		found, err := Scan(global_entLimit, logging, absPath)
 		if err != nil {
 			log.Fatal(err)
 		}

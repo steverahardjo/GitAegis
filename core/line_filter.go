@@ -7,32 +7,45 @@ import (
 	"sync"
 )
 
-// CodeLine stores a matching line and its metadata
-type CodeLineList struct {
-	Line     string
-	Index    int
-	Column   int
-	Entropy  float64
-	Meta map[string]any
-	}
+// =====================
+//       Payload
+// =====================
 
-// LineFilter applies a condition to a line and returns a CodeLine if matched
-type LineFilter func(line string, index int) *CodeLin
+type Payload map[string]any
 
+// =====================
+//      CodeLine
+// =====================
+
+type CodeLine struct {
+	Line    string
+	Index   int
+	Column  int
+	Meta    map[string]any
+	Payload Payload
+}
+
+// =====================
+//      LineFilter
+// =====================
+
+// LineFilter returns one or more Payloads and a boolean indicating if the line matched
+type LineFilter func(line string, index int) ([]Payload, bool)
+
+// =====================
+//       Filters
+// =====================
 
 // EntropyFilter returns lines whose entropy exceeds a threshold
 func EntropyFilter(threshold float64) LineFilter {
-	return func(s string, idx int) *CodeLine {
+	return func(s string, idx int) ([]Payload, bool) {
 		e := CalcEntropy(s)
 		if e > threshold {
-			return &CodeLine{
-				Line:     s,
-				Index:    idx,
-				Entropy:  e,
-				Header:   "entropy_threshold",
-			}
+			return []Payload{
+				{"entropy": e}, // only the computed value
+			}, true
 		}
-		return nil
+		return nil, false
 	}
 }
 
@@ -43,33 +56,23 @@ func BasicFilter() LineFilter {
 	reLower := regexp.MustCompile(`[a-z]`)
 	reSymbol := regexp.MustCompile(`[^a-zA-Z0-9]`)
 
-	return func(s string, idx int) *CodeLine {
+	return func(s string, idx int) ([]Payload, bool) {
 		if len(s) < 15 {
-			return nil
+			return nil, false
 		}
 
 		classes := 0
-		if reDigit.MatchString(s) {
-			classes++
-		}
-		if reUpper.MatchString(s) {
-			classes++
-		}
-		if reLower.MatchString(s) {
-			classes++
-		}
-		if reSymbol.MatchString(s) {
-			classes++
-		}
+		if reDigit.MatchString(s) { classes++ }
+		if reUpper.MatchString(s) { classes++ }
+		if reLower.MatchString(s) { classes++ }
+		if reSymbol.MatchString(s) { classes++ }
 
 		if classes >= 3 {
-			return &CodeLine{
-				Line:     s,
-				Index:    idx,
-				Header:   "basic_filter",
-			}
+			return []Payload{
+				{"complexity": classes}, // only the computed value
+			}, true
 		}
-		return nil
+		return nil, false
 	}
 }
 
@@ -81,19 +84,20 @@ type RegexFilter struct {
 
 // AddRegexFilters builds a LineFilter from multiple regex patterns
 func AddRegexFilters(patterns []RegexFilter) LineFilter {
-	return func(s string, idx int) *CodeLine {
+	return func(s string, idx int) ([]Payload, bool) {
+		var results []Payload
 		for _, rf := range patterns {
 			loc := rf.Regex.FindStringIndex(s)
 			if loc != nil {
-				return &CodeLine{
-					Line:     s,
-					Index:    idx,
-					Column:   loc[0],
-					Header:   rf.Header,
-				}
+				results = append(results, Payload{
+					"match": s[loc[0]:loc[1]], // only the matched value
+				})
 			}
 		}
-		return nil
+		if len(results) > 0 {
+			return results, true
+		}
+		return nil, false
 	}
 }
 
@@ -107,48 +111,42 @@ func LoadRegex(header, regexPattern string) (LineFilter, error) {
 }
 
 // =====================
-//   Filter Combinators
+//  Filter Combinators
 // =====================
 
-// AllFilters returns a filter that passes only if *all* filters match
-func AllFilters(filters ...LineFilter) LineFilter {
-	return func(s string, idx int) *CodeLine {
-		var combined *CodeLine
-		for _, f := range filters {
-			result := f(s, idx)
-			if result == nil {
-				return nil
-			}
-			if combined == nil {
-				combined = result
-			} else {
-				// Combine metadata
-				if result.Entropy > combined.Entropy {
-					combined.Entropy = result.Entropy
-				}
-				if result.Header != "" && combined.Header == "" {
-					combined.Header = result.Header
-				}
-			}
-		}
-		return combined
-	}
-}
-
-// AnyFilters returns a filter that passes if *any* filter matches
+// AnyFilters returns a filter that passes if any filter matches
 func AnyFilters(filters ...LineFilter) LineFilter {
-	return func(s string, idx int) *CodeLine {
+	return func(s string, idx int) ([]Payload, bool) {
+		var all []Payload
 		for _, f := range filters {
-			if result := f(s, idx); result != nil {
-				return result
+			if pl, ok := f(s, idx); ok {
+				all = append(all, pl...)
 			}
 		}
-		return nil
+		if len(all) > 0 {
+			return all, true
+		}
+		return nil, false
+	}
+}
+
+// AllFilters returns a filter that passes only if all filters match
+func AllFilters(filters ...LineFilter) LineFilter {
+	return func(s string, idx int) ([]Payload, bool) {
+		var combined []Payload
+		for _, f := range filters {
+			pl, ok := f(s, idx)
+			if !ok {
+				return nil, false
+			}
+			combined = append(combined, pl...)
+		}
+		return combined, true
 	}
 }
 
 // =====================
-//     Entropy Utils
+//      Entropy Utils
 // =====================
 
 // CalcEntropy computes Shannon entropy (single-threaded)
