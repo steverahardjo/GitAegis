@@ -38,7 +38,7 @@ var scanCmd = &cobra.Command{
 			}
 			targetPath = wd
 		}
-		logging, _ := cmd.Flags().GetBool("logging")
+		global_logging, _ := cmd.Flags().GetBool("logging")
 
 		absPath, err := filepath.Abs(targetPath)
 		if err != nil {
@@ -51,10 +51,14 @@ var scanCmd = &cobra.Command{
 			core.CheckAddGitignore(targetPath, "aegis.config.toml")
 			cfg.IntegrateConfig()
 		}
+		if err != nil{
+			log.Fatal(err)
+		}
 
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)
-		found, err := Scan(global_entLimit, logging, global_gitignore, int(global_filemaxsize), global_filters,absPath)
+
+		found, err := Scan(global_entLimit, global_logging, global_git_integration, int(global_filemaxsize), global_filters,absPath)
 		if err != nil {
 			log.Fatal(err)
 		}

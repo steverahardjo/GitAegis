@@ -3,7 +3,6 @@ package frontend
 import (
 	"fmt"
 	core "github.com/steverahardjo/GitAegis/core"
-	"regexp"
 )
 
 var (
@@ -56,18 +55,15 @@ func SetMaxFileSize(size int64) {
 }
 
 func SetGlobalFilters(regexes map[string]string) {
-	var patterns []core.RegexFilter
+	var filters []core.LineFilter
 
-	for name, pattern := range regexes {
-		re, err := regexp.Compile(pattern)
-		if err != nil {
-			// You can log, skip, or panic depending on your use case.
-			continue
-		}
-		patterns = append(patterns, core.RegexFilter{
-			Header: name,
-			Regex:  re,
-		})
+	for k, v := range regexes {
+		filter := core.AddTargetRegexPattern(k, v)
+		filters = append(filters, filter)
 	}
-	global_filters = core.AddRegexFilters(patterns)
+	filters = append(filters, core.BasicFilter())
+	filters = append(filters, core.EntropyFilter(global_entLimit))
+	// Combine all filters into one global LineFilter
+	global_filters = core.AllFilters(filters...)
 }
+

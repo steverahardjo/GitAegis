@@ -69,7 +69,7 @@ func BasicFilter() LineFilter {
 }
 
 
-func AddTargetRegexPattern(header, pattern string) LineFilter {
+func AddTargetRegexPattern(header string, pattern string) LineFilter {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		log.Fatal("Regex can't be loaded, skip this %s", header)
