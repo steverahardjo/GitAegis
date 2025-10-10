@@ -37,11 +37,12 @@
 
 ## Priority 4 — Performance & Portability
 - [ ] Parallelism (`obfuscate`, `undoObfuscate`, `calcEntropy`)  
-   - Worker pool scanning for faster runs on large repos.  
+   - Worker pool scanning for faster runs on large repos.
+- [ ] Optimization strategy on data structures and processing choices. 
 
 ---
 
 ## Priority 5 — Advanced Features
-- [ ] Hash secrets instead of masking in obfuscation  
-   - Replace secrets with deterministic hashes.  
-   - Allows later verification without exposing original values.  
+- [ ] Enable obfuscation directly on `git add` (no manual undo)  
+   - Intercept staged files → obfuscate secrets → stage masked content.  
+   - Undo step becomes optional.   

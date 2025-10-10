@@ -1,6 +1,7 @@
 package core
 
 import (
+	"log"
 	"math"
 	"regexp"
 	"runtime"
@@ -67,37 +68,25 @@ func BasicFilter() LineFilter {
 	}
 }
 
-// RegexFilter describes a named regular expression pattern
-type RegexFilter struct {
-	Header string
-	Regex  *regexp.Regexp
-}
 
-// AddRegexFilters builds a LineFilter from multiple regex patterns
-func AddRegexFilters(patterns []RegexFilter) LineFilter {
+func AddTargetRegexPattern(header, pattern string) LineFilter {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		log.Fatal("Regex can't be loaded, skip this %s", header)
+	}
+
 	return func(s string) (Payload, bool) {
-		matches := make(map[string]string)
-		for _, rf := range patterns {
-			loc := rf.Regex.FindStringIndex(s)
-			if loc != nil {
-				matches[rf.Header] = s[loc[0]:loc[1]]
+		loc := re.FindStringIndex(s)
+		if loc != nil {
+			payload := Payload{
+				header : s[loc[0]:loc[1]],
 			}
-		}
-		if len(matches) > 0 {
-			return Payload(matches), true
+			return payload, true
 		}
 		return nil, false
 	}
 }
 
-// LoadRegex compiles a single regex into a LineFilter
-func LoadRegex(header, regexPattern string) (LineFilter, error) {
-	re, err := regexp.Compile(regexPattern)
-	if err != nil {
-		return nil, err
-	}
-	return AddRegexFilters([]RegexFilter{{Header: header, Regex: re}}), nil
-}
 
 // AnyFilters returns a filter that passes if any filter matches
 func AnyFilters(filters ...LineFilter) LineFilter {
