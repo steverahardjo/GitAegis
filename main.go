@@ -1,9 +1,8 @@
 package main
 
 import (
-	"gitaegis/frontend"
+	"github.com/steverahardjo/GitAegis/frontend"
 )
-
-func main() {
-
-	}
+func main(){
+	frontend.Init_cmd()
+}
