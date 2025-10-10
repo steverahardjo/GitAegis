@@ -1,23 +1,32 @@
 package core
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
-	"sync"
 	"strings"
+	"sync"
+
 	gitignore "github.com/sabhiram/go-gitignore"
 )
 
-type ScanResult struct {
-	filenameMap map[string][]CodeLine
-	mutex       sync.Mutex
-	exempt      map[string]struct{} // use set instead of slice
+type CodeLine struct {
+	Filename  string
+	Lines     []string
+	Indexes   []int
+	Columns   []int
+	Extracted []Payload
 }
 
-// language specific exemption (defaults)
+type ScanResult struct {
+	filenameMap map[string][]CodeLine
+	mutex       sync.RWMutex
+	exempt      map[string]struct{}
+}
+
 var DefaultExempt = []string{
 	"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json",
 	"yarn.lock", "go.sum", "deno.lock", "Cargo.lock",
@@ -26,36 +35,28 @@ var DefaultExempt = []string{
 
 func (res *ScanResult) Init() {
 	res.filenameMap = make(map[string][]CodeLine)
-	res.exempt = make(map[string]struct{})
+	res.exempt = make(map[string]struct{}, len(DefaultExempt))
 	for _, f := range DefaultExempt {
 		res.exempt[f] = struct{}{}
 	}
 }
 
-// AddExempt adds a new exempt file to the set.
 func (res *ScanResult) AddExempt(file string) {
-	if _, exists := res.exempt[file]; exists {
-		fmt.Println("File is already exempted.")
-		return
-	}
+	res.mutex.Lock()
+	defer res.mutex.Unlock()
 	res.exempt[file] = struct{}{}
 }
 
-// Load .gitignore once
 func initGitIgnore() *gitignore.GitIgnore {
 	ign, err := gitignore.CompileIgnoreFile(".gitignore")
 	if err != nil {
 		if os.IsNotExist(err) {
 			return gitignore.CompileIgnoreLines()
 		}
-		log.Fatalf("Error loading .gitignore: %v", err)
+		log.Printf("Warning: failed to load .gitignore (%v)", err)
+		return gitignore.CompileIgnoreLines()
 	}
 	return ign
-}
-
-// IsFilenameMapEmpty returns true if no results are stored
-func (res *ScanResult) IsFilenameMapEmpty() bool {
-	return len(res.filenameMap) == 0
 }
 
 func (res *ScanResult) isExempt(filename string) bool {
@@ -64,45 +65,58 @@ func (res *ScanResult) isExempt(filename string) bool {
 }
 
 func isExecutable(filename string) bool {
-	absPath, err := filepath.Abs(filename)
+	info, err := os.Stat(filename)
 	if err != nil {
 		return false
 	}
-
-	info, err := os.Stat(absPath)
-	if err != nil {
-		return false
-	}
-	// Check if any execute bit is set (owner, group, or other)
 	return info.Mode().Perm()&0111 != 0
 }
-// IterFolder walks a directory and processes files in parallel
-func (res *ScanResult) IterFolder(root string, filter LineFilter, is_gitignore bool, max_filesize int64) error {
+
+func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
+	return ign != nil && ign.MatchesPath(path)
+}
+
+func (res *ScanResult) IsFilenameMapEmpty() bool {
+	res.mutex.RLock()
+	defer res.mutex.RUnlock()
+	return len(res.filenameMap) == 0
+}
+
+func (res *ScanResult) ClearMap() {
+	res.mutex.Lock()
+	defer res.mutex.Unlock()
+	res.filenameMap = make(map[string][]CodeLine)
+}
+
+func (res *ScanResult) GetFilenameMap() map[string][]CodeLine {
+	res.mutex.RLock()
+	defer res.mutex.RUnlock()
+	cpy := make(map[string][]CodeLine, len(res.filenameMap))
+	for k, v := range res.filenameMap {
+		cpy[k] = v
+	}
+	return cpy
+}
+
+// IterFolder walks through files concurrently and scans them
+func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore bool, maxFileSize int64) error {
 	var ign *gitignore.GitIgnore
-	if is_gitignore == true{
+	if useGitIgnore {
 		ign = initGitIgnore()
 	}
 
-	// Collect files first
-	var files []string
+	files := make([]string, 0, 512)
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
-		if err != nil {
+		if err != nil || d.IsDir() {
 			return err
 		}
-		if d.IsDir() {
+		if ignoreFiles(p, ign) || res.isExempt(p) || isExecutable(p) {
 			return nil
 		}
-		if ignoreFiles(p, ign) || res.isExempt(p) || isExecutable(p){
+		info, err := d.Info()
+		if err != nil || info.Size() > maxFileSize {
 			return nil
 		}
-		info, err := os.Stat(p)
-		if err != nil{
-			log.Fatal("Unable to get file size inside of core.IterFolder")
-		}
-		if info.Size() > max_filesize{
-			return nil
-		}
-
 		files = append(files, p)
 		return nil
 	})
@@ -110,9 +124,8 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, is_gitignore b
 		return err
 	}
 
-	// Worker pool
 	numWorkers := runtime.NumCPU()
-	fileCh := make(chan string, len(files))
+	fileCh := make(chan string, numWorkers*2)
 	var wg sync.WaitGroup
 
 	for i := 0; i < numWorkers; i++ {
@@ -122,9 +135,15 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, is_gitignore b
 			for filename := range fileCh {
 				tree, code, err := createTree(filename)
 				if err != nil {
-					res.PerLineScan(filename, filter)
+					lines := res.PerLineScan(filename, filter)
+					if len(lines) > 0 {
+						res.mutex.Lock()
+						res.filenameMap[filename] = lines
+						res.mutex.Unlock()
+					}
 					continue
 				}
+
 				lines := walkParse(tree.RootNode(), filter, code)
 				if len(lines) > 0 {
 					res.mutex.Lock()
@@ -140,53 +159,52 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, is_gitignore b
 	}
 	close(fileCh)
 	wg.Wait()
-
 	return nil
 }
 
-func (res *ScanResult) ClearMap() {
-	res.filenameMap = make(map[string][]CodeLine)
-}
-
-func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
-	return ign.MatchesPath(path)
-}
-
-func (res *ScanResult) GetFilenameMap() map[string][]CodeLine {
-	return res.filenameMap
-}
-///fallback if we can't use treesitter
+// Fallback scan when tree-sitter not available
 func (res *ScanResult) PerLineScan(filename string, filter LineFilter) []CodeLine {
-    data, err := os.ReadFile(filename)
-    if err != nil {
-        log.Fatal(err)
-    }
+	f, err := os.Open(filename)
+	if err != nil {
+		log.Printf("Error reading file %s: %v", filename, err)
+		return nil
+	}
+	defer f.Close()
 
-    lines := strings.Split(string(data), "\n")
-    var matched []CodeLine
+	scanner := bufio.NewScanner(f)
+	var lines []string
+	var indexes, columns []int
+	var extracted []Payload
+	lineNum := 1
 
-    for i, line := range lines {
-        // Split line by spaces
-        sublines := strings.Fields(line)
+	for scanner.Scan() {
+		parts := strings.Fields(scanner.Text())
+		for col, token := range parts {
+			pl, ok := filter(token)
+			if ok {
+				lines = append(lines, token)
+				indexes = append(indexes, lineNum)
+				columns = append(columns, col+1)
+				extracted = append(extracted, pl)
+			}
+		}
+		lineNum++
+	}
 
-        for _, sub := range sublines {
-			pl, dec := filter(sub)
-            if dec {
-                matched = append(matched, CodeLine{
-                    Line:    sub,
-                    Index:   i + 1,
-					Column: i+1,
-					Extracted: pl,
-                })
-            }
-        }
-    }
+	if len(lines) == 0 {
+		return nil
+	}
 
-    return matched
+	return []CodeLine{{
+		Filename:  filename,
+		Lines:     lines,
+		Indexes:   indexes,
+		Columns:   columns,
+		Extracted: extracted,
+	}}
 }
 
-
-// PrettyPrintResults prints results nicely with colors
+// PrettyPrintResults prints results nicely with ANSI colors
 func (res *ScanResult) PrettyPrintResults() {
 	const (
 		red    = "\033[31m"
@@ -195,19 +213,44 @@ func (res *ScanResult) PrettyPrintResults() {
 		reset  = "\033[0m"
 	)
 
-	fmt.Printf("%sGITAEGIS DETECTED THE FOLLOWING SECRETS%s\n", yellow, reset)
-	fmt.Printf("%s=======================================%s\n", yellow, reset)
+	if len(res.filenameMap) == 0 {
+		fmt.Println("No secrets detected.")
+		return
+	}
+
+	var b strings.Builder
+	b.Grow(4096) // Preallocate a reasonable buffer to reduce reallocations
+
+	b.WriteString(yellow)
+	b.WriteString("GITAEGIS DETECTED THE FOLLOWING SECRETS\n")
+	b.WriteString("=======================================\n")
+	b.WriteString(reset)
 
 	for filename, lines := range res.filenameMap {
-		fmt.Printf("\n%sFile:%s %s\n", green, reset, filename)
+		b.WriteString("\n")
+		b.WriteString(green)
+		b.WriteString("File: ")
+		b.WriteString(reset)
+		b.WriteString(filename)
+		b.WriteByte('\n')
 
 		for _, line := range lines {
-			fmt.Printf("%s---------------------------------------%s\n", yellow, reset)
-			fmt.Printf("%sIndex:%s   %d\n", red, reset, line.Index)
-			fmt.Printf("%sLine:%s    %s\n", red, reset, line.Line)
-			for k, v := range line.Extracted{
-				fmt.Printf("%s%s:%s %.4f\n", red, k, reset, v)
+			for i, l := range line.Lines {
+				b.WriteString(yellow)
+				b.WriteString("---------------------------------------\n")
+				b.WriteString(reset)
+
+				// Print line info
+				fmt.Fprintf(&b, "%sLine %d (Col %d):%s %s\n",
+					red, line.Indexes[i], line.Columns[i], reset, l)
+
+				// Print extracted payload
+				for k, v := range line.Extracted[i] {
+					fmt.Fprintf(&b, "  %s%s:%s %.4f\n", red, k, reset, v)
+				}
 			}
 		}
 	}
+
+	os.Stdout.WriteString(b.String())
 }

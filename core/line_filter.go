@@ -6,16 +6,10 @@ import (
 	"regexp"
 	"runtime"
 	"sync"
+	"strconv"
 )
 
-type Payload map[string]any
-
-type CodeLine struct {
-	Line      string
-	Index     int
-	Column    int
-	Extracted Payload
-}
+type Payload map[string]string
 
 // LineFilter returns a Payload and a boolean indicating if the line matched
 type LineFilter func(line string) (Payload, bool)
@@ -26,7 +20,7 @@ func EntropyFilter(threshold float64) LineFilter {
 		e := CalcEntropy(s)
 		if e > threshold {
 			return Payload{
-				"entropy": e, // only the computed value
+				"entropy": strconv.FormatFloat(e, 'f', 4, 64),
 			}, true
 		}
 		return nil, false
@@ -61,7 +55,7 @@ func BasicFilter() LineFilter {
 
 		if classes >= 3 {
 			return Payload{
-				"complexity": classes,
+				"complexity": string(classes),
 			}, true
 		}
 		return nil, false
