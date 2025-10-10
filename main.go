@@ -1,13 +1,9 @@
 package main
 
 import (
-	"log"
-	"fronte"
+	"gitaegis/frontend"
 )
 
 func main() {
-	frontend.Init_cmd()
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatal(err)
+
 	}
-}

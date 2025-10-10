@@ -99,8 +99,7 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, is_gitignore b
 		if err != nil{
 			log.Fatal("Unable to get file size inside of core.IterFolder")
 		}
-		if i
-		nfo.Size() > max_filesize{
+		if info.Size() > max_filesize{
 			return nil
 		}
 
@@ -168,14 +167,16 @@ func (res *ScanResult) PerLineScan(filename string, filter LineFilter) []CodeLin
 
     for i, line := range lines {
         // Split line by spaces
-        sublines := strings.Fields(line) // Fields splits by any whitespace
+        sublines := strings.Fields(line)
 
         for _, sub := range sublines {
-            if filter(sub) {
+			pl, dec := filter(sub)
+            if dec {
                 matched = append(matched, CodeLine{
                     Line:    sub,
                     Index:   i + 1,
-                    Entropy: CalcEntropy(sub),
+					Column: i+1,
+					Extracted: pl,
                 })
             }
         }
@@ -204,7 +205,9 @@ func (res *ScanResult) PrettyPrintResults() {
 			fmt.Printf("%s---------------------------------------%s\n", yellow, reset)
 			fmt.Printf("%sIndex:%s   %d\n", red, reset, line.Index)
 			fmt.Printf("%sLine:%s    %s\n", red, reset, line.Line)
-			fmt.Printf("%sEntropy:%s %.4f\n", red, reset, line.Entropy)
+			for k, v := range line.Extracted{
+				fmt.Printf("%s%s:%s %.4f\n", red, k, reset, v)
+			}
 		}
 	}
 }

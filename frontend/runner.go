@@ -9,7 +9,7 @@ import (
 )
 
 func Add(logging bool, paths ...string) error {
-	secretsFound, err := Scan(5.0, logging, paths...)
+	secretsFound, err := Scan(5.0, logging, global_gitignore, int(global_filemaxsize), global_filters, paths...)
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
 	}
@@ -23,13 +23,8 @@ func Add(logging bool, paths ...string) error {
 	}
 	return nil
 }
-//Runner function in the frontend that stick together all corev functions
-//Args:
-// - entrophy_limit:float64
-// - logging: bool = do log using .json/not
-// - global_gitignore = load_gitignore or not
-// - filesize_limit:int = size 
-func Scan(entropyLimit float64, logging bool, global_gitignore bool, filesize_limit int, projectPaths ...string) (bool, error) {
+//Runner function in the frontend that stick together all core functions
+func Scan(entropyLimit float64, logging bool, global_gitignore bool, filesize_limit int, filters core.LineFilter, projectPaths ...string) (bool, error) {
 	if len(projectPaths) == 0 {
 		projectPaths = []string{"."}
 	}
@@ -39,11 +34,6 @@ func Scan(entropyLimit float64, logging bool, global_gitignore bool, filesize_li
 
 	fmt.Println("Scanning paths:", projectPaths)
 	time.Sleep(1 * time.Second)
-
-	filters := core.AllFilters(
-		core.BasicFilter(),
-		core.EntropyFilter(entropyLimit),
-	)
 
 	foundSecrets := false
 

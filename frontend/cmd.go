@@ -10,6 +10,7 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
+
 var rootCmd = &cobra.Command{
 	Use:   "gitaegis",
 	Short: "API key scanner in Go",
@@ -44,10 +45,18 @@ var scanCmd = &cobra.Command{
 			log.Fatal("Unable to resolve absolute path:", err)
 		}
 
+		//load config
+		cfg, err := LoadConfig("config.toml")
+		if err != nil {
+			fmt.Println("Failed to load config:", err)
+			return
+		}
+
+		cfg.IntegrateConfig()
+
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)
-
-		found, err := Scan(global_entLimit, logging, absPath)
+		found, err := Scan(global_entLimit, logging, global_gitignore, int(global_filemaxsize), global_filters,absPath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -108,7 +117,7 @@ var sitter = &cobra.Command{
 
 func Init_cmd() {
 	rootCmd.AddCommand(scanCmd)
-	scanCmd.Flags().Float64VarP(&entLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
+	scanCmd.Flags().Float64VarP(&global_entLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
 	scanCmd.Flags().Bool("logging", false, "log")
 	rootCmd.AddCommand(gitignoreCmd)
 	rootCmd.AddCommand(addCmd)

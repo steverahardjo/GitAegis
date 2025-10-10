@@ -184,26 +184,26 @@ func walkParse(root *sitter.Node, filter LineFilter, code []byte) []CodeLine {
 	for len(stack) > 0 {
 		n := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
-		
+
+		// If leaf node, process it
 		if n.ChildCount() == 0 {
 			content := n.Content(code)
-			if filter(content) {
+			pl, ok := filter(content)
+			if ok {
 				start := n.StartPoint()
 				results = append(results, CodeLine{
-					Line:    content,
-					Index:   int(start.Row) + 1,
-					Column:  int(start.Column) + 1,
-					Entropy: CalcEntropy(content),
+					Line:      content,
+					Index:     int(start.Row) + 1,
+					Column:    int(start.Column) + 1,
+					Extracted: pl,
 				})
 			}
 			continue
 		}
 
-		// Push children in reverse so order matches recursion
-		for i := int(n.NamedChildCount()) - 1; i >= 0; i-- {
-			if c := n.NamedChild(i); c != nil {
-				stack = append(stack, c)
-			}
+		// Push children onto stack (DFS)
+		for i := int(n.ChildCount()) - 1; i >= 0; i-- {
+			stack = append(stack, n.Child(i))
 		}
 	}
 

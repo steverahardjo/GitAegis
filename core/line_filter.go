@@ -7,42 +7,25 @@ import (
 	"sync"
 )
 
-// =====================
-//       Payload
-// =====================
-
 type Payload map[string]any
 
-// =====================
-//      CodeLine
-// =====================
-
 type CodeLine struct {
-	Line    string
-	Index   int
-	Column  int
-	Meta    map[string]any
-	Payload Payload
+	Line      string
+	Index     int
+	Column    int
+	Extracted Payload
 }
 
-// =====================
-//      LineFilter
-// =====================
-
-// LineFilter returns one or more Payloads and a boolean indicating if the line matched
-type LineFilter func(line string, index int) ([]Payload, bool)
-
-// =====================
-//       Filters
-// =====================
+// LineFilter returns a Payload and a boolean indicating if the line matched
+type LineFilter func(line string) (Payload, bool)
 
 // EntropyFilter returns lines whose entropy exceeds a threshold
 func EntropyFilter(threshold float64) LineFilter {
-	return func(s string, idx int) ([]Payload, bool) {
+	return func(s string) (Payload, bool) {
 		e := CalcEntropy(s)
 		if e > threshold {
-			return []Payload{
-				{"entropy": e}, // only the computed value
+			return Payload{
+				"entropy": e, // only the computed value
 			}, true
 		}
 		return nil, false
@@ -56,20 +39,28 @@ func BasicFilter() LineFilter {
 	reLower := regexp.MustCompile(`[a-z]`)
 	reSymbol := regexp.MustCompile(`[^a-zA-Z0-9]`)
 
-	return func(s string, idx int) ([]Payload, bool) {
+	return func(s string) (Payload, bool) {
 		if len(s) < 15 {
 			return nil, false
 		}
 
 		classes := 0
-		if reDigit.MatchString(s) { classes++ }
-		if reUpper.MatchString(s) { classes++ }
-		if reLower.MatchString(s) { classes++ }
-		if reSymbol.MatchString(s) { classes++ }
+		if reDigit.MatchString(s) {
+			classes++
+		}
+		if reUpper.MatchString(s) {
+			classes++
+		}
+		if reLower.MatchString(s) {
+			classes++
+		}
+		if reSymbol.MatchString(s) {
+			classes++
+		}
 
 		if classes >= 3 {
-			return []Payload{
-				{"complexity": classes}, // only the computed value
+			return Payload{
+				"complexity": classes,
 			}, true
 		}
 		return nil, false
@@ -84,18 +75,16 @@ type RegexFilter struct {
 
 // AddRegexFilters builds a LineFilter from multiple regex patterns
 func AddRegexFilters(patterns []RegexFilter) LineFilter {
-	return func(s string, idx int) ([]Payload, bool) {
-		var results []Payload
+	return func(s string) (Payload, bool) {
+		matches := make(map[string]string)
 		for _, rf := range patterns {
 			loc := rf.Regex.FindStringIndex(s)
 			if loc != nil {
-				results = append(results, Payload{
-					"match": s[loc[0]:loc[1]], // only the matched value
-				})
+				matches[rf.Header] = s[loc[0]:loc[1]]
 			}
 		}
-		if len(results) > 0 {
-			return results, true
+		if len(matches) > 0 {
+			return Payload(matches), true
 		}
 		return nil, false
 	}
@@ -110,21 +99,21 @@ func LoadRegex(header, regexPattern string) (LineFilter, error) {
 	return AddRegexFilters([]RegexFilter{{Header: header, Regex: re}}), nil
 }
 
-// =====================
-//  Filter Combinators
-// =====================
-
 // AnyFilters returns a filter that passes if any filter matches
 func AnyFilters(filters ...LineFilter) LineFilter {
-	return func(s string, idx int) ([]Payload, bool) {
-		var all []Payload
+	return func(s string) (Payload, bool) {
+		merged := make(Payload)
+		matched := false
 		for _, f := range filters {
-			if pl, ok := f(s, idx); ok {
-				all = append(all, pl...)
+			if pl, ok := f(s); ok {
+				matched = true
+				for k, v := range pl {
+					merged[k] = v
+				}
 			}
 		}
-		if len(all) > 0 {
-			return all, true
+		if matched {
+			return merged, true
 		}
 		return nil, false
 	}
@@ -132,22 +121,20 @@ func AnyFilters(filters ...LineFilter) LineFilter {
 
 // AllFilters returns a filter that passes only if all filters match
 func AllFilters(filters ...LineFilter) LineFilter {
-	return func(s string, idx int) ([]Payload, bool) {
-		var combined []Payload
+	return func(s string) (Payload, bool) {
+		merged := make(Payload)
 		for _, f := range filters {
-			pl, ok := f(s, idx)
+			pl, ok := f(s)
 			if !ok {
 				return nil, false
 			}
-			combined = append(combined, pl...)
+			for k, v := range pl {
+				merged[k] = v
+			}
 		}
-		return combined, true
+		return merged, true
 	}
 }
-
-// =====================
-//      Entropy Utils
-// =====================
 
 // CalcEntropy computes Shannon entropy (single-threaded)
 func CalcEntropy(line string) float64 {

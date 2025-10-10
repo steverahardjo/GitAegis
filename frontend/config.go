@@ -3,7 +3,6 @@ package frontend
 import (
 	"fmt"
 	"os"
-	core "github.com/steverahardjo/GitAegis/core"
 	toml "github.com/BurntSushi/toml"
 )
 
@@ -11,7 +10,7 @@ import (
 type Config struct {
 	Logging         bool     `toml:"logging"`
 	TreeSitterDir   string   `toml:"treesitter_source"`
-	GitIntegration  bool     `toml:"git_integration"`
+	//GitIntegration  bool     `toml:"git_integration"`
 	OutputFormat    []string `toml:"output_format"`
 	UseGitignore    bool     `toml:"use_gitignore"`
 	Filter          Filter   `toml:"filter"`
@@ -22,8 +21,9 @@ type Filter struct {
 	EntLimit      float64            `toml:"ent_limit"`
 	MaxFileSize   int                `toml:"max_file_size"`
 	TargetRegex   map[string]string  `toml:"target_regex"`
-	LineExemption map[string]string  `toml:"line_exemption"`
+	//LineExemption map[string]string  `toml:"line_exemption"`
 }
+
 
 // LoadConfig reads and decodes a TOML file into Config
 func LoadConfig(path string) (*Config, error) {
@@ -39,14 +39,16 @@ func LoadConfig(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-func (c *Config )IntegrateConfig(){
-	global_logging = c.Logging
-	core.IntegrateTreeSitter(c.TreeSitterDir)
-	global_gitignore= c.UseGitignore
-	global_entLimit= c.Filter.EntLimit
-	global_filemaxsize = int64(c.Filter.MaxFileSize)
-	
-	}
+func (c *Config) IntegrateConfig() {
+	SetGlobalLogging(c.Logging)
+	IntegrateTreeSitter(c.TreeSitterDir)
+	SetUseGitignore(c.UseGitignore)
+	SetEntropyLimit(c.Filter.EntLimit)
+	SetMaxFileSize(int64(c.Filter.MaxFileSize))
+	SetGlobalFilters(c.Filter.TargetRegex)
+}
+
+
 
 
 
