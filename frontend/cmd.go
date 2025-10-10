@@ -46,8 +46,9 @@ var scanCmd = &cobra.Command{
 		}
 
 		//load config
-		cfg, err := LoadConfig("config.toml")
+		cfg, err := LoadConfig("aegis.config.toml")
 		if cfg != nil {
+			core.CheckAddGitignore(targetPath, "aegis.config.toml")
 			cfg.IntegrateConfig()
 		}
 

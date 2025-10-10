@@ -7,17 +7,12 @@
 
 - [x] Enable parallelism in `CalcEntrophy` <span style="color:red;">(NEED TO FIX BUGS ON MUTEX INDEX ACCESS)</span>
 
-- [i] Portable grammar loading  
-   - Bundle or fetch grammars from GitHub.  
-   - Allow custom grammars in config.
-   - have made a fallback for lineScanning, thinking of user-choice access by input the tree-sitter files through a cmd
+- [x] have made a fallback for lineScanning, thinking of user-choice access by input the tree-sitter files through a cmd
 
 ---
 
 ## Priority 2 — Workflow Integration
-- [ ] Sample-based regex filter generator  
-   - Auto-generate regex candidates from detected strings.  
-   - Configurable manual regex rules via `.gitaegis.config.toml`. 
+- [x] Configurable manual regex rules via `.gitaegis.config.toml`. 
 
 - [ ] Review/changing mechanism for `exemptAdditor`  
    - Move exemption management into config file.  

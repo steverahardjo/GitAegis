@@ -68,7 +68,7 @@ func SaveFilenameMap(root string, filenameMap map[string][]CodeLine) error {
 	}
 	f.Sync()
 	
-	checkAddGitignore(root, ".gitaegis.jsonl")
+	CheckAddGitignore(root, ".gitaegis.jsonl")
 	return err
 }
 
@@ -88,7 +88,7 @@ func LoadFilenameMap(root string) (map[string][]CodeLine, error) {
 	return topLevel.Data, nil
 }
 
-func checkAddGitignore(root string, filename string) error {
+func CheckAddGitignore(root string, filename string) error {
     ignorePath := filepath.Join(root, ".gitignore")
 
     // Read existing .gitignore if it exists
