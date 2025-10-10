@@ -47,12 +47,9 @@ var scanCmd = &cobra.Command{
 
 		//load config
 		cfg, err := LoadConfig("config.toml")
-		if err != nil {
-			fmt.Println("Failed to load config:", err)
-			return
+		if cfg != nil {
+			cfg.IntegrateConfig()
 		}
-
-		cfg.IntegrateConfig()
 
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)
