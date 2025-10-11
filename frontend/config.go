@@ -2,7 +2,9 @@ package frontend
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"sync"
 
 	toml "github.com/BurntSushi/toml"
 )
@@ -23,6 +25,12 @@ type Filter struct {
 	TargetRegex map[string]string `toml:"target_regex"`
 }
 
+var (
+	configOnce sync.Once
+	globalConfig *Config
+	defaultCfgPath = "aegis.config.toml"
+)
+
 // LoadConfig reads and decodes a TOML file into Config
 func LoadConfig(path string) (*Config, error) {
 	var cfg Config
@@ -34,10 +42,29 @@ func LoadConfig(path string) (*Config, error) {
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to decode config: %w", err)
 	}
-
 	return &cfg, nil
 }
 
+func LazyInitConfig() *Config {
+	configOnce.Do(func() {
+		if _, err := os.Stat(defaultCfgPath); os.IsNotExist(err) {
+			log.Printf("[Config] %s not found — skipping initialization", defaultCfgPath)
+			return
+		}
+
+		cfg, err := LoadConfig(defaultCfgPath)
+		if err != nil {
+			log.Printf("[Config] failed to load: %v", err)
+			return
+		}
+
+		globalConfig = cfg
+		globalConfig.IntegrateConfig()
+		log.Printf("[Config] loaded successfully from %s", defaultCfgPath)
+	})
+
+	return globalConfig
+}
 // IntegrateConfig applies loaded configuration to global state
 func (c *Config) IntegrateConfig() {
 	SetGlobalLogging(c.Logging)

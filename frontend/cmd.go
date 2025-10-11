@@ -45,15 +45,7 @@ var scanCmd = &cobra.Command{
 			log.Fatal("Unable to resolve absolute path:", err)
 		}
 
-		//load config
-		cfg, err := LoadConfig("aegis.config.toml")
-		if cfg != nil {
-			core.CheckAddGitignore(targetPath, "aegis.config.toml")
-			cfg.IntegrateConfig()
-		}
-		if err != nil{
-			log.Fatal(err)
-		}
+		LazyInitConfig()
 
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)

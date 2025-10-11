@@ -14,7 +14,6 @@ import (
 )
 
 type CodeLine struct {
-	Filename  string
 	Lines     []string
 	Indexes   []int
 	Columns   []int
@@ -196,7 +195,6 @@ func (res *ScanResult) PerLineScan(filename string, filter LineFilter) []CodeLin
 	}
 
 	return []CodeLine{{
-		Filename:  filename,
 		Lines:     lines,
 		Indexes:   indexes,
 		Columns:   columns,
