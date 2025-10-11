@@ -50,13 +50,9 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 			return false, fmt.Errorf("scan failed for %s: %w", path, err)
 		}
 	}
-
-	// no results => no secrets
 	if rv.Result.IsFilenameMapEmpty() {
 		return false, nil
 	}
-
-	// print results and optionally persist
 	rv.Result.PrettyPrintResults()
 
 	saveRoot, err := filepath.Abs(".")
@@ -73,7 +69,7 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 	return true, nil
 }
 
-// RunObfuscate loads obfuscation rules from the current working directory
+// RunObfuscate loads obfuscation ruleGetFilenames from the current working directory
 // and performs the obfuscation via core.LoadObfuscation.
 func RunObfuscate() error {
 	root, err := os.Getwd()

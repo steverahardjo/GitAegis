@@ -24,7 +24,11 @@ type TopLevel struct {
 	Data map[string][]CodeLine   `json:"data"`
 }
 
-func SaveFilenameMap(root string, filenameMap map[string][]CodeLine) error {
+func (res *ScanResult)SaveFilenameMap(root string) error {
+
+	res.mutex.RLock()
+	defer res.mutex.RUnlock()
+
 	filePath := filepath.Join(root, ".gitaegis.jsonl")
 
 	u, err := user.Current()
@@ -41,7 +45,7 @@ func SaveFilenameMap(root string, filenameMap map[string][]CodeLine) error {
 
 	// Count total CodeLine entries
 	total := 0
-	for _, lines := range filenameMap {
+	for _, lines := range res.filenameMap {
 		total += len(lines)
 	}
 
@@ -52,7 +56,7 @@ func SaveFilenameMap(root string, filenameMap map[string][]CodeLine) error {
 			Author:    author,
 			Frequency: total,
 		},
-		Data: filenameMap,
+		Data: res.filenameMap,
 	}
 
 	// Marshal with indentation

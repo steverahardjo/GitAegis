@@ -87,16 +87,6 @@ func (res *ScanResult) ClearMap() {
 	res.filenameMap = make(map[string][]CodeLine)
 }
 
-func (res *ScanResult) GetFilenameMap() map[string][]CodeLine {
-	res.mutex.RLock()
-	defer res.mutex.RUnlock()
-	cpy := make(map[string][]CodeLine, len(res.filenameMap))
-	for k, v := range res.filenameMap {
-		cpy[k] = v
-	}
-	return cpy
-}
-
 // IterFolder walks through files concurrently and scans them
 func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore bool, maxFileSize int64) error {
 	var ign *gitignore.GitIgnore
