@@ -10,16 +10,17 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
-
 var rootCmd = &cobra.Command{
 	Use:   "gitaegis",
 	Short: "API key scanner in Go",
 	Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		rv = NewRuntimeConfig()
 		global_result = &core.ScanResult{}
 		global_result.Init()
 	},
 }
+
 
 var scanCmd = &cobra.Command{
 	Use:   "scan [path]",
@@ -38,7 +39,7 @@ var scanCmd = &cobra.Command{
 			}
 			targetPath = wd
 		}
-		global_logging, _ := cmd.Flags().GetBool("logging")
+		rv.LoggingEnabled, _ = cmd.Flags().GetBool("logging")
 
 		absPath, err := filepath.Abs(targetPath)
 		if err != nil {
@@ -50,7 +51,7 @@ var scanCmd = &cobra.Command{
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)
 
-		found, err := Scan(global_entLimit, global_logging, global_git_integration, int(global_filemaxsize), global_filters,absPath)
+		found, err := rv.Scan(absPath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -77,9 +78,9 @@ var obfuscateCmd = &cobra.Command{
 	Use:   "obfuscate",
 	Short: "Obfuscate detected secrets in the codebase",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := runObfuscate(); err != nil {
-			log.Fatal(err)
-		}
+		//if err := rv.runObfuscate(); err != nil {
+			//log.Fatal(err)
+		//}
 	},
 }
 
@@ -88,22 +89,8 @@ var addCmd = &cobra.Command{
 	Short: "Scan before a git add",
 	Long:  "Couple GitAegis with git add to block commits containing secrets.",
 	Run: func(cmd *cobra.Command, args []string) {
-		logging, _ := cmd.Flags().GetBool("logging")
-		if err := Add(logging, args...); err != nil {
-			log.Fatal(err)
-		}
-	},
-}
-
-
-
-var sitter = &cobra.Command{
-	Use:   "sitter",
-	Short: "Integrate tree-sitter grammars to be used as parser in GitAegis",
-	Long:  "Integrating local tree-sitter grammar into gitaegis (ideal if user use nvim/helix/zed)",
-	Run: func(cmd *cobra.Command, args []string) {
-		logging, _ := cmd.Flags().GetBool("logging")
-		if err := Add(logging, args...); err != nil {
+		rv.LoggingEnabled, _ = cmd.Flags().GetBool("logging")
+		if err := rv.Add(args...); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -111,7 +98,7 @@ var sitter = &cobra.Command{
 
 func Init_cmd() {
 	rootCmd.AddCommand(scanCmd)
-	scanCmd.Flags().Float64VarP(&global_entLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
+	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
 	scanCmd.Flags().Bool("logging", false, "log")
 	rootCmd.AddCommand(gitignoreCmd)
 	rootCmd.AddCommand(addCmd)

@@ -66,14 +66,16 @@ func LazyInitConfig() *Config {
 	return globalConfig
 }
 // IntegrateConfig applies loaded configuration to global state
-func (c *Config) IntegrateConfig() {
-	SetGlobalLogging(c.Logging)
-	IntegrateTreeSitter(c.TreeSitterDir)
-	SetUseGitignore(c.UseGitignore)
-	SetEntropyLimit(c.Filter.EntLimit)
-	SetMaxFileSize(int64(c.Filter.MaxFileSize))
-	SetGlobalFilters(c.Filter.TargetRegex)
+func (c *Config) IntegrateConfig(){
+
+	rv.SetLogging(c.Logging)
+	rv.SetTreeSitterPath(c.TreeSitterDir)
+	rv.SetUseGitignore(c.UseGitignore)
+	rv.SetEntropyLimit(c.Filter.EntLimit)
+	rv.SetMaxFileSize(int64(c.Filter.MaxFileSize))
+	rv.SetFilters(c.Filter.TargetRegex)
 }
+
 
 
 

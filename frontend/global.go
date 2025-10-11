@@ -2,68 +2,89 @@ package frontend
 
 import (
 	"fmt"
+
 	core "github.com/steverahardjo/GitAegis/core"
 )
 
-var (
-	global_result         *core.ScanResult
-	global_entLimit       float64 = 5.0
-	global_logging        bool    = true
-	global_git_integration bool   = false
-	global_gitignore      bool    = true
-	global_filemaxsize    int64   = 500
-	sitter_path           string
-	global_filters 		  core.LineFilter
-)
+var rv *RuntimeValue
 
-// SetGlobalLogging updates global logging flag
-func SetGlobalLogging(enabled bool) {
-	global_logging = enabled
-	fmt.Printf("[Config] Logging set to %v\n", enabled)
+// RuntimeValue encapsulates the runtime configuration and state
+type RuntimeValue struct {
+	Result         *core.ScanResult
+	EntropyLimit   float64
+	LoggingEnabled bool
+	GitIntegration bool
+	UseGitignore   bool
+	MaxFileSize    int64
+	TreeSitterPath string
+	Filters        core.LineFilter
 }
 
-// IntegrateTreeSitter safely sets TreeSitter source path if provided
-func IntegrateTreeSitter(path string) {
+// NewRuntimeConfig initializes a RuntimeValue with default values
+func NewRuntimeConfig() *RuntimeValue {
+	rv := &RuntimeValue{
+		Result:         &core.ScanResult{},
+		EntropyLimit:   5.0,
+		LoggingEnabled: true,
+		GitIntegration: false,
+		UseGitignore:   true,
+		MaxFileSize:    500,
+	}
+	rv.Result.Init()
+	return rv
+}
+
+// SetLogging updates the logging flag
+func (rv *RuntimeValue) SetLogging(enabled bool) {
+	rv.LoggingEnabled = enabled
+	if rv.LoggingEnabled {
+		fmt.Printf("[Config] Logging enabled\n")
+	} else {
+		fmt.Printf("[Config] Logging disabled\n")
+	}
+}
+
+// SetTreeSitterPath safely sets TreeSitter source path if provided
+func (rv *RuntimeValue) SetTreeSitterPath(path string) {
 	if path == "" {
 		return
 	}
-	sitter_path = path
+	rv.TreeSitterPath = path
+	fmt.Printf("[Config] TreeSitter path set to %s\n", path)
 }
 
 // SetUseGitignore toggles .gitignore usage
-func SetUseGitignore(enable bool) {
-	global_gitignore = enable
+func (rv *RuntimeValue) SetUseGitignore(enable bool) {
+	rv.UseGitignore = enable
 	fmt.Printf("[Config] Use .gitignore = %v\n", enable)
 }
 
 // SetEntropyLimit safely updates the entropy limit
-func SetEntropyLimit(limit float64) {
+func (rv *RuntimeValue) SetEntropyLimit(limit float64) {
 	if limit <= 0 {
 		limit = 5.0
 	}
-	global_entLimit = limit
+	rv.EntropyLimit = limit
 	fmt.Printf("[Config] Entropy limit set to %.2f\n", limit)
 }
 
-// SetMaxFileSize updates maximum file size limit (in KB)
-func SetMaxFileSize(size int64) {
+// SetMaxFileSize updates the maximum file size limit (in KB)
+func (rv *RuntimeValue) SetMaxFileSize(size int64) {
 	if size <= 0 {
 		size = 500
 	}
-	global_filemaxsize = size
+	rv.MaxFileSize = size
 	fmt.Printf("[Config] Max file size set to %d KB\n", size)
 }
 
-func SetGlobalFilters(regexes map[string]string) {
+// SetFilters builds and applies regex + entropy filters
+func (rv *RuntimeValue) SetFilters(regexes map[string]string) {
 	var filters []core.LineFilter
-
 	for k, v := range regexes {
-		filter := core.AddTargetRegexPattern(k, v)
-		filters = append(filters, filter)
+		filters = append(filters, core.AddTargetRegexPattern(k, v))
 	}
 	filters = append(filters, core.BasicFilter())
-	filters = append(filters, core.EntropyFilter(global_entLimit))
-	// Combine all filters into one global LineFilter
-	global_filters = core.AllFilters(filters...)
+	filters = append(filters, core.EntropyFilter(rv.EntropyLimit))
+	rv.Filters = core.AllFilters(filters...)
+	fmt.Println("[Config] Filters initialized")
 }
-

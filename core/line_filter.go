@@ -66,7 +66,7 @@ func BasicFilter() LineFilter {
 func AddTargetRegexPattern(header string, pattern string) LineFilter {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
-		log.Fatal("Regex can't be loaded, skip this %s", header)
+		log.Println("Regex can't be loaded, skip this %s", header)
 	}
 
 	return func(s string) (Payload, bool) {

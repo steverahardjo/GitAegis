@@ -8,54 +8,64 @@ import (
 	"time"
 )
 
-func Add(logging bool, paths ...string) error {
-	secretsFound, err := Scan(5.0, logging, global_gitignore, int(global_filemaxsize), global_filters, paths...)
+// Add will scan given paths and git-add them if no secrets are found.
+func (rv *RuntimeValue) Add(paths ...string) error {
+	// perform scan using rv configuration
+	secretsFound, err := rv.Scan(paths...)
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
 	}
 	if secretsFound {
 		return fmt.Errorf("secrets detected! aborting add")
 	}
+
 	for _, f := range paths {
 		if err := core.GitAdd(f); err != nil {
-			return err
+			return fmt.Errorf("git add failed for %s: %w", f, err)
 		}
 	}
 	return nil
 }
-//Runner function in the frontend that stick together all core functions
-func Scan(entropyLimit float64, logging bool, global_gitignore bool, filesize_limit int, filters core.LineFilter, projectPaths ...string) (bool, error) {
+
+// Scan scans the provided project paths using the RuntimeValue's configuration.
+// Returns (true, nil) if secrets were found, (false, nil) when none found,
+// or (false, err) on error.
+func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 	if len(projectPaths) == 0 {
 		projectPaths = []string{"."}
 	}
 
-	global_result = &core.ScanResult{}
-	global_result.Init()
+	// ensure result container exists and initialized
+	if rv.Result == nil {
+		rv.Result = &core.ScanResult{}
+	}
+	rv.Result.Init()
 
 	fmt.Println("Scanning paths:", projectPaths)
+	// small pause to allow user to read if used in interactive CLI
 	time.Sleep(1 * time.Second)
 
-	foundSecrets := false
-
 	for _, path := range projectPaths {
-		err := global_result.IterFolder(path, filters, global_gitignore, int64(filesize_limit))
-		if err != nil {
-			return foundSecrets, fmt.Errorf("scan failed for %s: %w", path, err)
+		if err := rv.Result.IterFolder(path, rv.Filters, rv.UseGitignore, int64(rv.MaxFileSize)); err != nil {
+			return false, fmt.Errorf("scan failed for %s: %w", path, err)
 		}
 	}
 
-	if global_result.IsFilenameMapEmpty() {
+	// no results => no secrets
+	if rv.Result.IsFilenameMapEmpty() {
 		return false, nil
 	}
 
-	global_result.PrettyPrintResults()
+	// print results and optionally persist
+	rv.Result.PrettyPrintResults()
 
 	saveRoot, err := filepath.Abs(".")
 	if err != nil {
 		return true, fmt.Errorf("failed to resolve save path: %w", err)
 	}
-	if logging == true {
-		if err := core.SaveFilenameMap(saveRoot, global_result.GetFilenameMap()); err != nil {
+
+	if rv.LoggingEnabled {
+		if err := core.SaveFilenameMap(saveRoot, rv.Result.GetFilenameMap()); err != nil {
 			return true, fmt.Errorf("failed to save scan results: %w", err)
 		}
 	}
@@ -63,7 +73,9 @@ func Scan(entropyLimit float64, logging bool, global_gitignore bool, filesize_li
 	return true, nil
 }
 
-func runObfuscate() error {
+// RunObfuscate loads obfuscation rules from the current working directory
+// and performs the obfuscation via core.LoadObfuscation.
+func RunObfuscate() error {
 	root, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get working directory: %w", err)

@@ -166,7 +166,7 @@ func obfuscatePerLine(filename string, line CodeLine) error {
 	return os.WriteFile(filename, []byte(output), 0644)
 }
 
-// LoadObfuscation obfuscates all lines previously detected and saved in the filename map.
+// obfuscates all lines previously detected and saved in the filename map.
 func LoadObfuscation(root string) error {
 	x, err := LoadFilenameMap(root)
 	if err != nil {
