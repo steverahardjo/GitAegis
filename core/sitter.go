@@ -173,40 +173,41 @@ func createTree(filename string) (*sitter.Tree, []byte, error) {
 	return tree, data, nil
 }
 //Run a DFS to walk through the tree and get leaf node
-func walkParse(root *sitter.Node, filter LineFilter, code []byte) []CodeLine {
-	results := []CodeLine{}
-	if root == nil {
-		return results
-	}
+func walkParse(root *sitter.Node, filter LineFilter, code []byte) *CodeLine {
+	var lines []string
+	var indexes, columns []int
+	var extracted []Payload
 
 	stack := []*sitter.Node{root}
 
 	for len(stack) > 0 {
+		// Pop from stack
 		n := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
 		// If leaf node, process it
 		if n.ChildCount() == 0 {
 			content := n.Content(code)
-			pl, ok := filter(content)
-			if ok {
+			if pl, ok := filter(content); ok {
 				start := n.StartPoint()
-				results = append(results, CodeLine{
-					Line:      content,
-					Index:     int(start.Row) + 1,
-					Column:    int(start.Column) + 1,
-					Extracted: pl,
-				})
+				lines = append(lines, content)
+				indexes = append(indexes, int(start.Row)+1)
+				columns = append(columns, int(start.Column)+1)
+				extracted = append(extracted, pl)
 			}
 			continue
 		}
 
-		// Push children onto stack (DFS)
+		// Push children onto stack in reverse order for DFS
 		for i := int(n.ChildCount()) - 1; i >= 0; i-- {
 			stack = append(stack, n.Child(i))
 		}
 	}
 
-	return results
+	return &CodeLine{
+		Lines:     lines,
+		Indexes:   indexes,
+		Columns:   columns,
+		Extracted: extracted,
+	}
 }
-

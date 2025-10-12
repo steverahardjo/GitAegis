@@ -21,7 +21,7 @@ type CodeLine struct {
 }
 
 type ScanResult struct {
-	filenameMap map[string][]CodeLine
+	filenameMap map[string]CodeLine
 	mutex       sync.RWMutex
 	exempt      map[string]struct{}
 }
@@ -33,7 +33,7 @@ var DefaultExempt = []string{
 }
 
 func (res *ScanResult) Init() {
-	res.filenameMap = make(map[string][]CodeLine)
+	res.filenameMap = make(map[string]CodeLine)
 	res.exempt = make(map[string]struct{}, len(DefaultExempt))
 	for _, f := range DefaultExempt {
 		res.exempt[f] = struct{}{}
@@ -84,7 +84,7 @@ func (res *ScanResult) IsFilenameMapEmpty() bool {
 func (res *ScanResult) ClearMap() {
 	res.mutex.Lock()
 	defer res.mutex.Unlock()
-	res.filenameMap = make(map[string][]CodeLine)
+	res.filenameMap = make(map[string]CodeLine)
 }
 
 // IterFolder walks through files concurrently and scans them
@@ -122,21 +122,18 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore b
 		go func() {
 			defer wg.Done()
 			for filename := range fileCh {
+				var lines *CodeLine
+
 				tree, code, err := createTree(filename)
 				if err != nil {
-					lines := res.PerLineScan(filename, filter)
-					if len(lines) > 0 {
-						res.mutex.Lock()
-						res.filenameMap[filename] = lines
-						res.mutex.Unlock()
-					}
-					continue
+					lines = res.PerLineScan(filename, filter)
+				} else {
+					lines = walkParse(tree.RootNode(), filter, code)
 				}
 
-				lines := walkParse(tree.RootNode(), filter, code)
-				if len(lines) > 0 {
+				if len(lines.Lines) > 0 {
 					res.mutex.Lock()
-					res.filenameMap[filename] = lines
+					res.filenameMap[filename] = *lines
 					res.mutex.Unlock()
 				}
 			}
@@ -152,11 +149,11 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore b
 }
 
 // Fallback scan when tree-sitter not available
-func (res *ScanResult) PerLineScan(filename string, filter LineFilter) []CodeLine {
+func (res *ScanResult) PerLineScan(filename string, filter LineFilter) *CodeLine {
 	f, err := os.Open(filename)
 	if err != nil {
 		log.Printf("Error reading file %s: %v", filename, err)
-		return nil
+		return nil // return nil on error
 	}
 	defer f.Close()
 
@@ -181,16 +178,17 @@ func (res *ScanResult) PerLineScan(filename string, filter LineFilter) []CodeLin
 	}
 
 	if len(lines) == 0 {
-		return nil
+		return nil // return nil if no matches
 	}
 
-	return []CodeLine{{
+	return &CodeLine{
 		Lines:     lines,
 		Indexes:   indexes,
 		Columns:   columns,
 		Extracted: extracted,
-	}}
+	}
 }
+
 
 // PrettyPrintResults prints results nicely with ANSI colors
 func (res *ScanResult) PrettyPrintResults() {
@@ -222,23 +220,20 @@ func (res *ScanResult) PrettyPrintResults() {
 		b.WriteString(filename)
 		b.WriteByte('\n')
 
-		for _, line := range lines {
-			for i, l := range line.Lines {
-				b.WriteString(yellow)
-				b.WriteString("---------------------------------------\n")
-				b.WriteString(reset)
+		for i, l := range lines.Lines {
+			b.WriteString(yellow)
+			b.WriteString("---------------------------------------\n")
+			b.WriteString(reset)
 
-				// Print line info
-				fmt.Fprintf(&b, "%sLine %d (Col %d):%s %s\n",
-					red, line.Indexes[i], line.Columns[i], reset, l)
+			// Print line info
+			fmt.Fprintf(&b, "%sLine %d (Col %d):%s %s\n",
+				red, lines.Indexes[i], lines.Columns[i], reset, l)
 
-				// Print extracted payload
-				for k, v := range line.Extracted[i] {
-					fmt.Fprintf(&b, "  %s%s:%s %.4f\n", red, k, reset, v)
+			// Print extracted payload
+			for k, v := range lines.Extracted[i] {
+				fmt.Fprintf(&b, "  %s%s:%s %v\n", red, k, reset, v)
 				}
 			}
 		}
-	}
-
 	os.Stdout.WriteString(b.String())
-}
+	}

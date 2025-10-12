@@ -154,6 +154,8 @@ func UpdateGitignore() error {
 
 // obfuscatePerLine replaces a specific line in a file with a warning marker.
 // This is used to "mask" secrets without deleting the file entirely.
+/*
+
 func obfuscatePerLine(filename string, line CodeLine) error {
 	content, err := os.ReadFile(filename)
 	if err != nil {
@@ -216,3 +218,4 @@ func undoObfuscate(root string) error {
 
 	return nil
 }
+	*/
