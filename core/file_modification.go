@@ -21,7 +21,7 @@ type JsonMetadata struct {
 // Global struct for saving/loading
 type TopLevel struct {
 	Meta JsonMetadata            `json:"meta"`
-	Data map[string][]CodeLine   `json:"data"`
+	Data map[string]CodeLine   `json:"data"`
 }
 
 func (res *ScanResult)SaveFilenameMap(root string) error {
@@ -45,8 +45,8 @@ func (res *ScanResult)SaveFilenameMap(root string) error {
 
 	// Count total CodeLine entries
 	total := 0
-	for _, lines := range res.filenameMap {
-		total += len(lines)
+	for _, res := range res.filenameMap {
+		total += len(res.Indexes)
 	}
 
 	// Fill in top-level struct

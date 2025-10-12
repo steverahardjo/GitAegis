@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-
+	intro "github.com/steverahardjo/GitAegis/intro"
 	cobra "github.com/spf13/cobra"
 )
 
@@ -16,8 +16,7 @@ var rootCmd = &cobra.Command{
 	Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		rv = NewRuntimeConfig()
-		global_result = &core.ScanResult{}
-		global_result.Init()
+		rv.GlobalResult.Init()
 	},
 }
 
@@ -96,6 +95,28 @@ var addCmd = &cobra.Command{
 	},
 }
 
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Integrate gitaegis to pre-hook or to bashrc",
+	Long:  "pre-hook require the correct root you need, bashrc require it existss",
+	Run: func(cmd *cobra.Command, args []string) {
+		root, err := os.Getwd()
+		if err != nil{
+			log.Println(err)
+		}
+		preHook, _ := cmd.Flags().GetBool("prehook")
+		bash, _ := cmd.Flags().GetBool("bash")
+		if preHook && bash {
+			log.Fatal("Flags --prehook and --bash cannot be used together")
+		}else if bash{
+			intro.AttachShellConfig()
+		}else{
+			intro.GitPreHookInit(root)
+		}
+
+	},
+}
+
 func Init_cmd() {
 	rootCmd.AddCommand(scanCmd)
 	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
@@ -103,4 +124,7 @@ func Init_cmd() {
 	rootCmd.AddCommand(gitignoreCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(obfuscateCmd)
+	initCmd.Flags().Bool("prehook", false, "Integrate GitAegis as a git pre-hook")
+	initCmd.Flags().Bool("bash", false, "Integrate GitAegis into bashrc")
+	rootCmd.AddCommand(initCmd)
 }
