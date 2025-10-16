@@ -17,7 +17,7 @@ type LineFilter func(line string) (Payload, bool)
 // EntropyFilter returns lines whose entropy exceeds a threshold
 func EntropyFilter(threshold float64) LineFilter {
 	return func(s string) (Payload, bool) {
-		e := CalcEntropy(s)
+		e:=CalcEntropyParallel(s)
 		if e > threshold {
 			return Payload{
 				"entropy": strconv.FormatFloat(e, 'f', 4, 64),
@@ -140,9 +140,10 @@ func CalcEntropy(line string) float64 {
 	return entropy
 }
 
-// CalcEntropyParallel computes entropy using multiple CPU cores
+// CalcEntropyParallel computes entropy using multiple CPU cores, output a float64 entrophy
 func CalcEntropyParallel(line string) float64 {
-	x := len(line)
+	b := []byte(line)
+	x := len(b)
 	if x == 0 {
 		return 0.0
 	}
@@ -167,13 +168,14 @@ func CalcEntropyParallel(line string) float64 {
 				chResults <- uniqCounter
 				return
 			}
-			for _, val := range line[start:end] {
-				uniqCounter[val]++
+			for j := start; j < end; j++ {
+				uniqCounter[b[j]]++
 			}
 			chResults <- uniqCounter
 		}(i)
 	}
 
+	// Close channel once all goroutines finish
 	go func() {
 		wg.Wait()
 		close(chResults)

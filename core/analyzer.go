@@ -13,6 +13,7 @@ import (
 	gitignore "github.com/sabhiram/go-gitignore"
 )
 
+// CodeLine stores matching lines in a file
 type CodeLine struct {
 	Lines     []string
 	Indexes   []int
@@ -20,18 +21,21 @@ type CodeLine struct {
 	Extracted []Payload
 }
 
+// ScanResult holds scanned files and exemptions
 type ScanResult struct {
 	filenameMap map[string]CodeLine
 	mutex       sync.RWMutex
 	exempt      map[string]struct{}
 }
 
+// DefaultExempt files that are skipped
 var DefaultExempt = []string{
 	"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json",
 	"yarn.lock", "go.sum", "deno.lock", "Cargo.lock",
 	".gitignore", ".python-version", "LICENSE", ".gitaegis.jsonl",
 }
 
+// Init initializes ScanResult
 func (res *ScanResult) Init() {
 	res.filenameMap = make(map[string]CodeLine)
 	res.exempt = make(map[string]struct{}, len(DefaultExempt))
@@ -40,29 +44,33 @@ func (res *ScanResult) Init() {
 	}
 }
 
+// AddExempt adds a file to exemption list
 func (res *ScanResult) AddExempt(file string) {
 	res.mutex.Lock()
 	defer res.mutex.Unlock()
 	res.exempt[file] = struct{}{}
 }
 
+// initGitIgnore loads .gitignore safely
 func initGitIgnore() *gitignore.GitIgnore {
 	ign, err := gitignore.CompileIgnoreFile(".gitignore")
 	if err != nil {
 		if os.IsNotExist(err) {
 			return gitignore.CompileIgnoreLines()
 		}
-		log.Printf("Warning: failed to load .gitignore (%v)", err)
+		log.Printf("[core.analyzer] failed to load .gitignore (%v)", err)
 		return gitignore.CompileIgnoreLines()
 	}
 	return ign
 }
 
+// isExempt checks if a filename is in exemptions
 func (res *ScanResult) isExempt(filename string) bool {
 	_, ok := res.exempt[filepath.Base(filename)]
 	return ok
 }
 
+// isExecutable checks if file is executable
 func isExecutable(filename string) bool {
 	info, err := os.Stat(filename)
 	if err != nil {
@@ -71,24 +79,31 @@ func isExecutable(filename string) bool {
 	return info.Mode().Perm()&0111 != 0
 }
 
+// ignoreFiles checks if a file is ignored by gitignore
 func ignoreFiles(path string, ign *gitignore.GitIgnore) bool {
 	return ign != nil && ign.MatchesPath(path)
 }
 
+// IsFilenameMapEmpty returns true if no files have been scanned
 func (res *ScanResult) IsFilenameMapEmpty() bool {
 	res.mutex.RLock()
 	defer res.mutex.RUnlock()
 	return len(res.filenameMap) == 0
 }
 
+// ClearMap clears all scan results
 func (res *ScanResult) ClearMap() {
 	res.mutex.Lock()
 	defer res.mutex.Unlock()
 	res.filenameMap = make(map[string]CodeLine)
 }
 
-// IterFolder walks through files concurrently and scans them
+// IterFolder scans a folder recursively
 func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore bool, maxFileSize int64) error {
+	if filter == nil {
+		return fmt.Errorf("filter cannot be nil")
+	}
+
 	var ign *gitignore.GitIgnore
 	if useGitIgnore {
 		ign = initGitIgnore()
@@ -123,15 +138,20 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore b
 			defer wg.Done()
 			for filename := range fileCh {
 				var lines *CodeLine
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("[core.analyzer] Recovered panic scanning %s: %v", filename, r)
+					}
+				}()
 
-				tree, code, err := createTree(filename)
+				tree, code, err := CreateTree(filename)
 				if err != nil {
 					lines = res.PerLineScan(filename, filter)
 				} else {
 					lines = walkParse(tree.RootNode(), filter, code)
 				}
 
-				if len(lines.Lines) > 0 {
+				if lines != nil && len(lines.Lines) > 0 {
 					res.mutex.Lock()
 					res.filenameMap[filename] = *lines
 					res.mutex.Unlock()
@@ -148,12 +168,16 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore b
 	return nil
 }
 
-// Fallback scan when tree-sitter not available
+// PerLineScan scans file line by line as a fallback
 func (res *ScanResult) PerLineScan(filename string, filter LineFilter) *CodeLine {
+	if filter == nil {
+		return nil
+	}
+
 	f, err := os.Open(filename)
 	if err != nil {
-		log.Printf("Error reading file %s: %v", filename, err)
-		return nil // return nil on error
+		log.Printf("[core.analyzer] Error reading file %s: %v", filename, err)
+		return nil
 	}
 	defer f.Close()
 
@@ -167,7 +191,7 @@ func (res *ScanResult) PerLineScan(filename string, filter LineFilter) *CodeLine
 		parts := strings.Fields(scanner.Text())
 		for col, token := range parts {
 			pl, ok := filter(token)
-			if ok {
+			if ok && pl != nil {
 				lines = append(lines, token)
 				indexes = append(indexes, lineNum)
 				columns = append(columns, col+1)
@@ -178,7 +202,7 @@ func (res *ScanResult) PerLineScan(filename string, filter LineFilter) *CodeLine
 	}
 
 	if len(lines) == 0 {
-		return nil // return nil if no matches
+		return nil
 	}
 
 	return &CodeLine{
@@ -189,8 +213,7 @@ func (res *ScanResult) PerLineScan(filename string, filter LineFilter) *CodeLine
 	}
 }
 
-
-// PrettyPrintResults prints results nicely with ANSI colors
+// PrettyPrintResults prints results with colors
 func (res *ScanResult) PrettyPrintResults() {
 	const (
 		red    = "\033[31m"
@@ -205,7 +228,7 @@ func (res *ScanResult) PrettyPrintResults() {
 	}
 
 	var b strings.Builder
-	b.Grow(4096) // Preallocate a reasonable buffer to reduce reallocations
+	b.Grow(4096)
 
 	b.WriteString(yellow)
 	b.WriteString("GITAEGIS DETECTED THE FOLLOWING SECRETS\n")
@@ -225,15 +248,16 @@ func (res *ScanResult) PrettyPrintResults() {
 			b.WriteString("---------------------------------------\n")
 			b.WriteString(reset)
 
-			// Print line info
 			fmt.Fprintf(&b, "%sLine %d (Col %d):%s %s\n",
 				red, lines.Indexes[i], lines.Columns[i], reset, l)
 
-			// Print extracted payload
-			for k, v := range lines.Extracted[i] {
-				fmt.Fprintf(&b, "  %s%s:%s %v\n", red, k, reset, v)
+			if i < len(lines.Extracted) && lines.Extracted[i] != nil {
+				for k, v := range lines.Extracted[i] {
+					fmt.Fprintf(&b, "  %s%s:%s %v\n", red, k, reset, v)
 				}
 			}
 		}
-	os.Stdout.WriteString(b.String())
 	}
+
+	os.Stdout.WriteString(b.String())
+}

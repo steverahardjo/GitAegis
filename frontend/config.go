@@ -16,6 +16,7 @@ type Config struct {
 	OutputFormat  []string `toml:"output_format"`
 	UseGitignore  bool     `toml:"use_gitignore"`
 	Filter        Filter   `toml:"filter"`
+	
 }
 
 // Filter section of the TOML config

@@ -62,7 +62,8 @@ func (res *ScanResult)SaveFilenameMap(root string) error {
 	// Marshal with indentation
 	data, err := json.MarshalIndent(topLevel, "", "  ")
 	if err != nil {
-		log.Fatal(err)
+		
+		log.Printf("UNable to save into a jsonl for saveFilenamemap")
 		return err
 	}
 	_, err = f.Write(data)

@@ -3,7 +3,6 @@ package frontend
 import (
 	"fmt"
 	core "github.com/steverahardjo/GitAegis/core"
-	"os"
 	"path/filepath"
 	"time"
 )
@@ -28,6 +27,7 @@ func (rv *RuntimeValue) Add(paths ...string) error {
 }
 
 // Scan scans the provided project paths using the RuntimeValue's configuration.
+// PrettyPrint() the result into the console
 // Returns (true, nil) if secrets were found, (false, nil) when none found,
 // or (false, err) on error.
 func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
@@ -44,6 +44,8 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 	fmt.Println("Scanning paths:", projectPaths)
 	// small pause to allow user to read if used in interactive CLI
 	time.Sleep(1 * time.Second)
+	rv.SetTreeSitterPath("/home/holyknight101/.private/helix/runtime/grammars")
+	core.IntegrateTreeSitter(rv.TreeSitterPath)
 
 	for _, path := range projectPaths {
 		if err := rv.Result.IterFolder(path, rv.Filters, rv.UseGitignore, int64(rv.MaxFileSize)); err != nil {
@@ -51,7 +53,7 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 		}
 	}
 	if rv.Result.IsFilenameMapEmpty() {
-		return false, nil
+		fmt.Println("Nothing is found in the fileMap")
 	}
 	rv.Result.PrettyPrintResults()
 
@@ -72,6 +74,7 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 // RunObfuscate loads obfuscation ruleGetFilenames from the current working directory
 // and performs the obfuscation via core.LoadObfuscation.
 func RunObfuscate() error {
+	/*
 	root, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get working directory: %w", err)
@@ -82,5 +85,7 @@ func RunObfuscate() error {
 	}
 
 	fmt.Println("Secrets obfuscated successfully.")
+	return nil
+	*/
 	return nil
 }

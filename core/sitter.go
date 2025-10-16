@@ -68,7 +68,7 @@ func IntegrateTreeSitter(homePath string) error {
 func loadExtMap() (*GrammarConfig, error) {
 	resp, err := http.Get("https://raw.githubusercontent.com/steverahardjo/GitAegis/cli-enabled/core/sitter.json")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read sitter.json: %w", err)
+		return nil, fmt.Errorf("[TreeSitter] failed to read sitter.json: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -79,7 +79,7 @@ func loadExtMap() (*GrammarConfig, error) {
 
 	var cfg GrammarConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, errors.New("invalid sitter.json")
+		return nil, errors.New("[TreeSitter] unable to laod json helper")
 	}
 	return &cfg, nil
 }
@@ -108,7 +108,7 @@ func platformExt() string {
 func initGrammar(filename string) *sitter.Parser {
 	cfg, err := getExtMap()
 	if err != nil {
-		fmt.Println("Error loading config:", err)
+		fmt.Println("[TreeSitter] Error loading config:", err)
 		return nil
 	}
 	
@@ -134,7 +134,7 @@ func initGrammar(filename string) *sitter.Parser {
 
 	lib, dlErr := purego.Dlopen(soPath, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if dlErr != nil {
-		fmt.Printf("Error loading grammar %s: %v\n", soPath, dlErr)
+		fmt.Printf("[TreeSitter] Error loading grammar %s: %v\n", soPath, dlErr)
 		return nil
 	}
 
@@ -146,7 +146,7 @@ func initGrammar(filename string) *sitter.Parser {
 	// Construct Language
 	lang := sitter.NewLanguage(unsafe.Pointer(sym()))
 	if lang == nil {
-		fmt.Println("Error creating language for:", langBase)
+		fmt.Println("[TreeSitter] Error creating language for:", langBase)
 		return nil
 	}
 
@@ -155,7 +155,7 @@ func initGrammar(filename string) *sitter.Parser {
 }
 
 // createTree parses a file and returns both the syntax tree and file content
-func createTree(filename string) (*sitter.Tree, []byte, error) {
+func CreateTree(filename string) (*sitter.Tree, []byte, error) {
 	parser := initGrammar(filename)
 	if parser == nil {
 		return nil, nil, fmt.Errorf("failed to initialize grammar")
