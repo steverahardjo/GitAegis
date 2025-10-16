@@ -107,7 +107,7 @@ var initCmd = &cobra.Command{
 		preHook, _ := cmd.Flags().GetBool("prehook")
 		bash, _ := cmd.Flags().GetBool("bash")
 		if preHook && bash {
-			log.Fatal("Flags --prehook and --bash cannot be used together")
+			fmt.Println("Flags --prehook and --bash cannot be used together")
 		}else if bash{
 			intro.AttachShellConfig()
 		}else{

@@ -76,7 +76,7 @@ func (res *ScanResult)SaveFilenameMap(root string) error {
 	return err
 }
 
-func LoadFilenameMap(root string) (map[string][]CodeLine, error) {
+func LoadFilenameMap(root string) (map[string]CodeLine, error) {
 	filePath := path.Join(root, ".gitaegis.jsonl")
 
 	f, err := os.Open(filePath)

@@ -61,7 +61,7 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 	}
 
 	if rv.LoggingEnabled {
-		if err := core.SaveFilenameMap(saveRoot, rv.Result.GetFilenameMap()); err != nil {
+		if err := rv.Result.SaveFilenameMap(saveRoot); err != nil {
 			return true, fmt.Errorf("failed to save scan results: %w", err)
 		}
 	}
@@ -76,7 +76,7 @@ func RunObfuscate() error {
 	if err != nil {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
-
+	
 	if err := core.LoadObfuscation(root); err != nil {
 		return fmt.Errorf("failed to obfuscate secrets: %w", err)
 	}
