@@ -35,7 +35,6 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 		projectPaths = []string{"."}
 	}
 
-	// ensure result container exists and initialized
 	if rv.Result == nil {
 		rv.Result = &core.ScanResult{}
 	}
@@ -52,17 +51,18 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 			return false, fmt.Errorf("scan failed for %s: %w", path, err)
 		}
 	}
-	if rv.Result.IsFilenameMapEmpty() {
+	res := rv.Result.IsFilenameMapEmpty()
+	if res {
 		fmt.Println("Nothing is found in the fileMap")
 	}
 	rv.Result.PrettyPrintResults()
 
 	saveRoot, err := filepath.Abs(".")
 	if err != nil {
-		return true, fmt.Errorf("failed to resolve save path: %w", err)
+		return true, fmt.Errorf("[runner.Scan] failed to resolve save path: %w", err)
 	}
 
-	if rv.LoggingEnabled {
+	if rv.LoggingEnabled &&  res {
 		if err := rv.Result.SaveFilenameMap(saveRoot); err != nil {
 			return true, fmt.Errorf("failed to save scan results: %w", err)
 		}
