@@ -38,10 +38,8 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 	if rv.Result == nil {
 		rv.Result = &core.ScanResult{}
 	}
-	rv.Result.Init()
 
 	fmt.Println("Scanning paths:", projectPaths)
-	// small pause to allow user to read if used in interactive CLI
 	time.Sleep(1 * time.Second)
 	rv.SetTreeSitterPath("/home/holyknight101/.private/helix/runtime/grammars")
 	core.IntegrateTreeSitter(rv.TreeSitterPath)
@@ -62,7 +60,7 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 		return true, fmt.Errorf("[runner.Scan] failed to resolve save path: %w", err)
 	}
 
-	if rv.LoggingEnabled &&  res {
+	if rv.LoggingEnabled &&  !res {
 		if err := rv.Result.SaveFilenameMap(saveRoot); err != nil {
 			return true, fmt.Errorf("failed to save scan results: %w", err)
 		}

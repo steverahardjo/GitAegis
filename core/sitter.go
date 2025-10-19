@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"unsafe"
 	"sync"
@@ -28,6 +27,7 @@ var (
 	sitterInitErr error
 	SitterMap     *GrammarConfig
 	sitter_path string
+	langCache sync.Map
 )
 
 func IntegrateTreeSitter(homePath string) error {
@@ -54,9 +54,7 @@ func IntegrateTreeSitter(homePath string) error {
 			sitterInitErr = errors.New("tree-sitter path must be a directory")
 			return
 		}
-		
 		sitter_path = absPath
-
 		SitterMap = &GrammarConfig{}
 	})
 
@@ -92,18 +90,6 @@ func getExtMap() (*GrammarConfig, error) {
 	return SitterMap, sitterInitErr
 }
 
-// platformExt returns the correct shared object extension for the OS
-func platformExt() string {
-	switch runtime.GOOS {
-	case "darwin":
-		return ".dylib"
-	case "windows":
-		return ".dll"
-	default:
-		return ".so"
-	}
-}
-
 // initGrammar initializes and returns a Tree-sitter parser for a given file.
 func initGrammar(filename string) *sitter.Parser {
 	cfg, err := getExtMap()
@@ -111,14 +97,10 @@ func initGrammar(filename string) *sitter.Parser {
 		fmt.Println("[TreeSitter] Error loading config:", err)
 		return nil
 	}
-	
-	parser := sitter.NewParser()
 
-	// lookup by extension
 	ext := filepath.Ext(filename)
 	langFile, ok := cfg.Extensions[ext]
 	if !ok {
-		// fallback: check filenames
 		base := filepath.Base(filename)
 		langFile, ok = cfg.Filenames[base]
 	}
@@ -126,33 +108,39 @@ func initGrammar(filename string) *sitter.Parser {
 		return nil
 	}
 
-	// Strip .so to get clean base name for symbol lookup
-	langBase := strings.TrimSuffix(langFile, ".so")
+	// --- Cache only the *language* ---
+	val, ok := langCache.Load(langFile)
+	var lang *sitter.Language
+	if ok {
+		lang = val.(*sitter.Language)
+	} else {
+		langBase := strings.TrimSuffix(langFile, ".so")
+		soPath := filepath.Join(sitter_path, langFile)
 
-	// Build full .so path
-	soPath := filepath.Join(sitter_path, langFile)
+		lib, dlErr := purego.Dlopen(soPath, purego.RTLD_NOW|purego.RTLD_GLOBAL)
+		if dlErr != nil {
+			fmt.Printf("[TreeSitter] Error loading grammar %s: %v\n", soPath, dlErr)
+			return nil
+		}
 
-	lib, dlErr := purego.Dlopen(soPath, purego.RTLD_NOW|purego.RTLD_GLOBAL)
-	if dlErr != nil {
-		fmt.Printf("[TreeSitter] Error loading grammar %s: %v\n", soPath, dlErr)
-		return nil
+		var sym func() uintptr
+		symbolName := "tree_sitter_" + langBase
+		purego.RegisterLibFunc(&sym, lib, symbolName)
+
+		lang = sitter.NewLanguage(unsafe.Pointer(sym()))
+		if lang == nil {
+			fmt.Println("[TreeSitter] Error creating language for:", langBase)
+			return nil
+		}
+		langCache.Store(langFile, lang)
 	}
 
-	// Bind tree_sitter_<langname> symbol
-	var sym func() uintptr
-	symbolName := "tree_sitter_" + langBase
-	purego.RegisterLibFunc(&sym, lib, symbolName)
-
-	// Construct Language
-	lang := sitter.NewLanguage(unsafe.Pointer(sym()))
-	if lang == nil {
-		fmt.Println("[TreeSitter] Error creating language for:", langBase)
-		return nil
-	}
-
+	// --- Always create a new parser ---
+	parser := sitter.NewParser()
 	parser.SetLanguage(lang)
 	return parser
 }
+
 
 // createTree parses a file and returns both the syntax tree and file content
 func CreateTree(filename string) (*sitter.Tree, []byte, error) {
@@ -172,6 +160,7 @@ func CreateTree(filename string) (*sitter.Tree, []byte, error) {
 	}
 	return tree, data, nil
 }
+
 //Run a DFS to walk through the tree and get leaf node
 func walkParse(root *sitter.Node, filter LineFilter, code []byte) *CodeLine {
 	var lines []string

@@ -32,6 +32,9 @@ git init
 #Run secret scan before committing
 gitaegis scan . --logging
 
+
+#Write gitignore to based on the pre vious run result being saved in the logging
+gitaegis gitignore
 #Ad and commit changes
 git add . 
 git commit
@@ -39,20 +42,76 @@ git commit
 Script integrated with Git
 ```bash
 #initialize a repo
-git init
+git init 
 
 #use git add to wrap gitaegis scan and a git add
-gitaegis add . 
+
+#initialize gitaegis to be used with git through bash
+git add . 
 
 #do a git commit
 git commit
+
 ```
 
+Script integrated with Git Pre-Hook
+```bash
+#initialize a repo
+git init 
+
+#initialize gitaegis to be used with before a git commit as a pre-hook
+gitaegis init --prehook
+
+#add file into git
+git add
+
+#use a git  commit, if a gitaegis flag something its going to abort a git commit
+git commit 
+
+```
+---
+
+## Configuration Reference
+The `aegis.config.toml` file defines runtime behavior for GitAegis’ frontend scanning engine.  
+It controls logging, parser sources, output formats, and scanning filters.
+
+### General Settings
+
+| Key | Type | Description | Example |
+|-----|------|--------------|----------|
+| `logging` | `bool` | Enables or disables verbose console logging during scans. | `true` |
+| `treesitter_source` | `string` | Path to the local or vendored Tree-Sitter grammar sources. | `"path/to/treesitter"` |
+| `output_format` | `[]string` | Defines output formats for scan results. Supported: `json`, `txt`, `html`. | `["json", "txt"]` |
+| `use_gitignore` | `bool` | If true, excludes files listed in `.gitignore` during scanning. | `true` |
+
+---
+
+### Filter Section
+
+| Key | Type | Description | Example |
+|-----|------|--------------|----------|
+| `ent_limit` | `float64` | Minimum entropy threshold to flag suspicious strings. | `0.8` |
+| `max_file_size` | `int` | Skip files larger than this (in bytes). Helps performance and avoids binary junk. | `1024` |
+| `target_regex` | `map[string]string` | Map of file type identifiers to regex patterns for targeted scanning. | `{ "go" = ".*\\.go$", "js" = ".*\\.js$" }` |
+
+---
+
+### Example Config
+
+```toml
+logging = true
+treesitter_source = "path/to/treesitter"
+output_format = ["json", "txt"]
+use_gitignore = true
+
+[filter]
+ent_limit = 0.8
+max_file_size = 1024
+target_regex = { "go" = ".*\\.go$", "js" = ".*\\.js$" }
+
 ## Future Release Plan
-1. Diverse line filter and exemption filter
-2. Integration with git pre-hook
-3. Ability to obfuscate the added file blob directly through the git add API
-4. A toml config file for big project use, loading mechanism, and conventional use
+1. Ability to obfuscate the added file blob directly through the git add API
+2. Do further otpimization through object pooling
 
 ## Contributing
 Contributions and improvement ideas are welcome.

@@ -2,24 +2,13 @@ package main
 
 import (
 	"fmt"
-	runner "github.com/steverahardjo/GitAegis/frontend"
+	core "github.com/steverahardjo/GitAegis/core"
 )
 
 func main() {
-	rv := runner.NewRuntimeConfig()
-
-	// Initialize filters (regex + basic + entropy)
-	rv.SetFilters(map[string]string{
-		"password": `(?i)password\s*[:=]`,
-		"apikey":   `(?i)api[_-]?key\s*[:=]`,
-	})
-
-	// Now scan
-	res, err := rv.Scan("/home/holyknight101/Documents/Projects/Personal/exp_site")
-	if err != nil {
-		fmt.Println("Scan error:", err)
-		return
+	files := core.GetUntrackedFile(".")
+	for _, f := range files {
+		fmt.Println("Untracked:", f)
 	}
-	print(res)
-
 }
+

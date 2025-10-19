@@ -13,10 +13,7 @@
 
 ## Priority 2 — Workflow Integration
 - [x] Configurable manual regex rules via `.gitaegis.config.toml`. 
-
-- [ ] Review/changing mechanism for `exemptAdditor`  
-   - Move exemption management into config file.  
-   - Allow bulk exemptions and reversible actions.
+- [x] Use lazy load to use git changed file traker to load only file being changed
 
 ---
 
@@ -25,7 +22,7 @@
    - Human-readable, portable, and easy to parse in CI/CD.  
    - Enables audit trail and integration with other tools.  
 
-- [ ] Enable actual Git pre-hooks instead of bashrc  
+- [x] Enable actual Git pre-hooks instead of bashrc  
    - `gitaegis init` should install a `.git/hooks/pre-commit` or `pre-push` hook.  
    - Prevents secrets from entering repo at commit time.  
 
@@ -36,13 +33,8 @@
 ---
 
 ## Priority 4 — Performance & Portability
-- [ ] Parallelism (`obfuscate`, `undoObfuscate`, `calcEntropy`)  
+- [x] Parallelism (`obfuscate`, `undoObfuscate`, `calcEntropy`)  
    - Worker pool scanning for faster runs on large repos.
-- [ ] Optimization strategy on data structures and processing choices. 
+- [ ] Reuse variables initiated through object pooling especially in frequently called functions.
 
----
 
-## Priority 5 — Advanced Features
-- [ ] Enable obfuscation directly on `git add` (no manual undo)  
-   - Intercept staged files → obfuscate secrets → stage masked content.  
-   - Undo step becomes optional.   

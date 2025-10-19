@@ -16,7 +16,6 @@ var rootCmd = &cobra.Command{
 	Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		rv = NewRuntimeConfig()
-		rv.GlobalResult.Init()
 	},
 }
 
@@ -67,7 +66,11 @@ var gitignoreCmd = &cobra.Command{
 	Use:   "ignore",
 	Short: "Generate or update .gitignore from previous scan run",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := core.UpdateGitignore(); err != nil {
+		blob, err:=core.LoadFilenameMap(".")
+		if err != nil{
+			log.Printf("[modification] unable to load a json log files")
+		}
+		if err := core.UpdateGitignore(blob); err != nil {
 			log.Fatal(err)
 		}
 	},

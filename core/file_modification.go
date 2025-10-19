@@ -25,10 +25,6 @@ type TopLevel struct {
 }
 
 func (res *ScanResult)SaveFilenameMap(root string) error {
-
-	res.mutex.RLock()
-	defer res.mutex.RUnlock()
-
 	filePath := filepath.Join(root, ".gitaegis.jsonl")
 
 	u, err := user.Current()
@@ -63,7 +59,7 @@ func (res *ScanResult)SaveFilenameMap(root string) error {
 	data, err := json.MarshalIndent(topLevel, "", "  ")
 	if err != nil {
 		
-		log.Printf("UNable to save into a jsonl for saveFilenamemap")
+		log.Printf("Unable to save into a jsonl for saveFilenamemap")
 		return err
 	}
 	_, err = f.Write(data)
@@ -73,7 +69,7 @@ func (res *ScanResult)SaveFilenameMap(root string) error {
 	}
 	f.Sync()
 	
-	CheckAddGitignore(root, ".gitaegis.jsonl")
+	checkAddGitignore(root, ".gitaegis.jsonl")
 	return err
 }
 
@@ -93,29 +89,24 @@ func LoadFilenameMap(root string) (map[string]CodeLine, error) {
 	return topLevel.Data, nil
 }
 
-func CheckAddGitignore(root string, filename string) error {
+func checkAddGitignore(root string, filename string) error {
     ignorePath := filepath.Join(root, ".gitignore")
-
-    // Read existing .gitignore if it exists
     var lines []string
     if data, err := os.ReadFile(ignorePath); err == nil {
         lines = strings.Split(string(data), "\n")
         for _, line := range lines {
             if strings.TrimSpace(line) == filename {
-                // already present
                 return nil
             }
         }
     }
 
-    // Open (or create) .gitignore for appending
     f, err := os.OpenFile(ignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
     if err != nil {
         return err
     }
     defer f.Close()
 
-    // Append with newline
     if _, err := f.WriteString(filename + "\n"); err != nil {
         return err
     }
@@ -127,11 +118,7 @@ func CheckAddGitignore(root string, filename string) error {
 
 // UpdateGitignore appends all saved file paths from the filename map into .gitignore.
 // It ensures that previously detected files are ignored in Git.
-func UpdateGitignore() error {
-	blob, err := LoadFilenameMap(".")
-	if err != nil {
-		return fmt.Errorf("unable to load filename map: %w", err)
-	}
+func UpdateGitignore(blob map[string]CodeLine) error {
 
 	if _, err := os.Stat(".gitignore"); os.IsNotExist(err) {
 		fmt.Println(".gitignore does not exist, creating it...")

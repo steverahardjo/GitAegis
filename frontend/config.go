@@ -16,7 +16,6 @@ type Config struct {
 	OutputFormat  []string `toml:"output_format"`
 	UseGitignore  bool     `toml:"use_gitignore"`
 	Filter        Filter   `toml:"filter"`
-	
 }
 
 // Filter section of the TOML config
@@ -45,7 +44,7 @@ func LoadConfig(path string) (*Config, error) {
 	}
 	return &cfg, nil
 }
-
+//use sync.once to init config efficiently only once when aegis.toml is changed
 func LazyInitConfig() *Config {
 	configOnce.Do(func() {
 		if _, err := os.Stat(defaultCfgPath); os.IsNotExist(err) {
@@ -76,6 +75,8 @@ func (c *Config) IntegrateConfig(){
 	rv.SetMaxFileSize(int64(c.Filter.MaxFileSize))
 	rv.SetFilters(c.Filter.TargetRegex)
 }
+
+
 
 
 
