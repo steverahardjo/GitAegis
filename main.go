@@ -1,14 +1,11 @@
 package main
 
 import (
-	"fmt"
-	core "github.com/steverahardjo/GitAegis/core"
+	frontend "github.com/steverahardjo/GitAegis/frontend"
 )
 
 func main() {
-	files := core.GetUntrackedFile(".")
-	for _, f := range files {
-		fmt.Println("Untracked:", f)
-	}
+	frontend.Init_cmd()
 }
+
 
