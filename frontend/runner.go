@@ -8,7 +8,7 @@ import (
 )
 
 // Add will scan given paths and git-add them if no secrets are found.
-func (rv *RuntimeValue) Add(paths ...string) error {
+func (rv *RuntimeValue) Add(repoPath string, paths ...string) error {
 	// perform scan using rv configuration
 	secretsFound, err := rv.Scan(paths...)
 	if err != nil {
@@ -19,7 +19,7 @@ func (rv *RuntimeValue) Add(paths ...string) error {
 	}
 
 	for _, f := range paths {
-		if err := core.GitAdd(f); err != nil {
+		if err := core.GitAdd(repoPath, f); err != nil {
 			return fmt.Errorf("git add failed for %s: %w", f, err)
 		}
 	}

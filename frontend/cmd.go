@@ -92,7 +92,11 @@ var addCmd = &cobra.Command{
 	Long:  "Couple GitAegis with git add to block commits containing secrets.",
 	Run: func(cmd *cobra.Command, args []string) {
 		rv.LoggingEnabled, _ = cmd.Flags().GetBool("logging")
-		if err := rv.Add(args...); err != nil {
+		gitPath, err := os.Getwd()
+		if err != nil{
+			fmt.Errorf("[addCmd] unable to find home")
+		}
+		if err := rv.Add(gitPath, args...); err != nil {
 			log.Fatal(err)
 		}
 	},

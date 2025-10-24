@@ -108,6 +108,7 @@ use_gitignore = true
 ent_limit = 0.8
 max_file_size = 1024
 target_regex = { "go" = ".*\\.go$", "js" = ".*\\.js$" }
+```
 
 ## Future Release Plan
 1. Ability to obfuscate the added file blob directly through the git add API
