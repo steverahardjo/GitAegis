@@ -60,5 +60,3 @@ func GetUntrackedFile(path string) []string {
 	return files
 }
 
-
-
