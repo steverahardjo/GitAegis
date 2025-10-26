@@ -55,7 +55,7 @@ func BasicFilter() LineFilter {
 
 		if classes >= 3 {
 			return Payload{
-				"complexity": string(classes),
+				"complexity": strconv.Itoa(classes),
 			}, true
 		}
 		return nil, false
