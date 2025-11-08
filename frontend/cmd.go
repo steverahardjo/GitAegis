@@ -11,7 +11,7 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
-var rv *RuntimeValue // global runtime
+var rv *RuntimeValue
 
 // Root command
 var rootCmd = &cobra.Command{
@@ -27,7 +27,7 @@ var scanCmd = &cobra.Command{
 	Long:  "Scan a specified directory or file for secrets using entropy and regex for API keys. Defaults to current directory.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if rv == nil {
-			rv = NewRuntimeConfig() // ensure runtime exists
+			rv = NewRuntimeConfig()
 		}
 
 		var targetPath string
@@ -42,12 +42,11 @@ var scanCmd = &cobra.Command{
 		}
 
 		rv.LoggingEnabled, _ = cmd.Flags().GetBool("logging")
-		LazyInitConfig() // apply TOML config if exists
-
+		LazyInitConfig()
+		
 		absPath, _ := filepath.Abs(targetPath)
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)
-
 		found, err := rv.Scan(absPath)
 		if err != nil {
 			log.Fatal(err)
@@ -116,7 +115,7 @@ func Init_cmd() {
 	rv = NewRuntimeConfig() // initialize first
 
 	// scan flags
-	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
+	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", rv.EntropyLimit, "Entropy threshold for secret detection")
 	scanCmd.Flags().Bool("logging", false, "Enable logging")
 
 	// init flags

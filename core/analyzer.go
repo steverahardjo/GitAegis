@@ -33,6 +33,7 @@ var DefaultExempt = []string{
 	"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json",
 	"yarn.lock", "go.sum", "deno.lock", "Cargo.lock",
 	".gitignore", ".python-version", "LICENSE", ".gitaegis.jsonl",
+	".git",
 }
 
 // Init initializes ScanResult
@@ -100,7 +101,6 @@ func (res *ScanResult) ClearMap() {
 
 // IterFolder scans a folder recursively
 func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore bool, maxFileSize int64) error {
-
 	var ign *gitignore.GitIgnore
 	if useGitIgnore {
 		ign = initGitIgnore()

@@ -23,7 +23,7 @@ type RuntimeValue struct {
 func NewRuntimeConfig() *RuntimeValue {
 	rv := &RuntimeValue{
 		Result:         &core.ScanResult{},
-		EntropyLimit:   5.0,
+		EntropyLimit:   4.5,
 		LoggingEnabled: true,
 		GitIntegration: false,
 		UseGitignore:   true,
@@ -60,9 +60,6 @@ func (rv *RuntimeValue) SetUseGitignore(enable bool) {
 
 // SetEntropyLimit safely updates the entropy limit
 func (rv *RuntimeValue) SetEntropyLimit(limit float64) {
-	if limit <= 0 {
-		limit = 5.0
-	}
 	rv.EntropyLimit = limit
 	fmt.Printf("[Config] Entropy limit set to %.2f\n", limit)
 }

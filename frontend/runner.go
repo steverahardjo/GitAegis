@@ -35,6 +35,7 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 		projectPaths = []string{"."}
 	}
 
+
 	if rv.Result == nil {
 		rv.Result = &core.ScanResult{}
 	}
@@ -43,15 +44,19 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 	time.Sleep(1 * time.Second)
 	rv.SetTreeSitterPath("/home/holyknight101/.private/helix/runtime/grammars")
 	core.IntegrateTreeSitter(rv.TreeSitterPath)
-
+	filter:= core.AnyFilters(
+		rv.Filters,
+		core.EntropyFilter(rv.EntropyLimit),
+	)
 	for _, path := range projectPaths {
-		if err := rv.Result.IterFolder(path, rv.Filters, rv.UseGitignore, int64(rv.MaxFileSize)); err != nil {
+		if err := rv.Result.IterFolder(path, filter, rv.UseGitignore, int64(rv.MaxFileSize)); err != nil {
 			return false, fmt.Errorf("scan failed for %s: %w", path, err)
 		}
 	}
 	res := rv.Result.IsFilenameMapEmpty()
 	if res {
 		fmt.Println("Nothing is found in the fileMap")
+		return false, nil
 	}
 	rv.Result.PrettyPrintResults()
 

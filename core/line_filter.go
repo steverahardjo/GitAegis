@@ -5,8 +5,9 @@ import (
 	"math"
 	"regexp"
 	"runtime"
-	"sync"
 	"strconv"
+	"sync"
+	"fmt"
 )
 
 type Payload map[string]string
@@ -88,6 +89,9 @@ func AnyFilters(filters ...LineFilter) LineFilter {
 		merged := make(Payload)
 		matched := false
 		for _, f := range filters {
+			if f == nil{
+				continue
+			}
 			if pl, ok := f(s); ok {
 				matched = true
 				for k, v := range pl {
@@ -107,6 +111,9 @@ func AllFilters(filters ...LineFilter) LineFilter {
 	return func(s string) (Payload, bool) {
 		merged := make(Payload)
 		for _, f := range filters {
+			if f == nil{
+				continue
+			}
 			pl, ok := f(s)
 			if !ok {
 				return nil, false

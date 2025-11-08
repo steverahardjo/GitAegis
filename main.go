@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-    frontend.Init_cmd() // register commands & flags
+    frontend.Init_cmd()
 
-    // Execute the CLI
+    
     if err := frontend.RootCmd().Execute(); err != nil {
         fmt.Println(err)
         os.Exit(1)

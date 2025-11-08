@@ -66,14 +66,28 @@ func LazyInitConfig() *Config {
 	return globalConfig
 }
 // IntegrateConfig applies loaded configuration to global state
-func (c *Config) IntegrateConfig(){
-
-	rv.SetLogging(c.Logging)
-	rv.SetTreeSitterPath(c.TreeSitterDir)
+func (c *Config) IntegrateConfig() {
+	if rv == nil {
+		return
+	}
+	if c.Logging {
+		rv.SetLogging(c.Logging)
+	}
+	if c.TreeSitterDir != "" {
+		rv.SetTreeSitterPath(c.TreeSitterDir)
+	}
 	rv.SetUseGitignore(c.UseGitignore)
-	rv.SetEntropyLimit(c.Filter.EntLimit)
-	rv.SetMaxFileSize(int64(c.Filter.MaxFileSize))
-	rv.SetFilters(c.Filter.TargetRegex)
+	if c.Filter.EntLimit > 0 {
+		rv.SetEntropyLimit(c.Filter.EntLimit)
+	}
+	if c.Filter.MaxFileSize > 0 {
+		rv.SetMaxFileSize(int64(c.Filter.MaxFileSize))
+	}
+	if len(c.Filter.TargetRegex) > 0 {
+		rv.SetFilters(c.Filter.TargetRegex)
+	}else{
+		fmt.Println("No config is found, use default of 5.0 entrophy limit")
+	}
 }
 
 
