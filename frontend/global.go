@@ -6,8 +6,6 @@ import (
 	core "github.com/steverahardjo/GitAegis/core"
 )
 
-var rv *RuntimeValue
-
 // RuntimeValue encapsulates the runtime configuration and state
 type RuntimeValue struct {
 	Result         *core.ScanResult

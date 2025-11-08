@@ -100,9 +100,6 @@ func (res *ScanResult) ClearMap() {
 
 // IterFolder scans a folder recursively
 func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore bool, maxFileSize int64) error {
-	if filter == nil {
-		return fmt.Errorf("filter cannot be nil")
-	}
 
 	var ign *gitignore.GitIgnore
 	if useGitIgnore {

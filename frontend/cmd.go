@@ -3,31 +3,34 @@ package frontend
 import (
 	"fmt"
 	core "github.com/steverahardjo/GitAegis/core"
+	intro "github.com/steverahardjo/GitAegis/intro"
 	"log"
 	"os"
 	"path/filepath"
-	intro "github.com/steverahardjo/GitAegis/intro"
+
 	cobra "github.com/spf13/cobra"
 )
 
+var rv *RuntimeValue // global runtime
+
+// Root command
 var rootCmd = &cobra.Command{
 	Use:   "gitaegis",
 	Short: "API key scanner in Go",
 	Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		rv = NewRuntimeConfig()
-	},
 }
 
-
+// Scan command
 var scanCmd = &cobra.Command{
 	Use:   "scan [path]",
 	Short: "Scan a directory or file for secrets",
-	Long:  "Scan a specified directory or file for secrets using entropy and regex for API keys. Defaults to the current directory if no path is provided.",
+	Long:  "Scan a specified directory or file for secrets using entropy and regex for API keys. Defaults to current directory.",
 	Run: func(cmd *cobra.Command, args []string) {
-		var targetPath string
+		if rv == nil {
+			rv = NewRuntimeConfig() // ensure runtime exists
+		}
 
-		// Use provided path or fallback to current dir
+		var targetPath string
 		if len(args) > 0 {
 			targetPath = args[0]
 		} else {
@@ -37,15 +40,11 @@ var scanCmd = &cobra.Command{
 			}
 			targetPath = wd
 		}
+
 		rv.LoggingEnabled, _ = cmd.Flags().GetBool("logging")
+		LazyInitConfig() // apply TOML config if exists
 
-		absPath, err := filepath.Abs(targetPath)
-		if err != nil {
-			log.Fatal("Unable to resolve absolute path:", err)
-		}
-
-		LazyInitConfig()
-
+		absPath, _ := filepath.Abs(targetPath)
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)
 
@@ -53,26 +52,23 @@ var scanCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		if found {
-			fmt.Println("\nSecrets detected! You may run `gitaegis obfuscate` to mask them.")
+			fmt.Println("\nSecrets detected! Run `gitaegis obfuscate` to mask them.")
 		} else {
-			fmt.Println("\nNo secrets found. Nothing to obfuscate.")
+			fmt.Println("\nNo secrets found.")
 		}
 	},
 }
 
+// Other commands (gitignore, add, obfuscate, init)
 var gitignoreCmd = &cobra.Command{
 	Use:   "ignore",
-	Short: "Generate or update .gitignore from previous scan run",
+	Short: "Generate/update .gitignore from previous scan",
 	Run: func(cmd *cobra.Command, args []string) {
-		blob, err:=core.LoadFilenameMap(".")
-		if err != nil{
-			log.Printf("[modification] unable to load a json log files")
-		}
-		if err := core.UpdateGitignore(blob); err != nil {
-			log.Fatal(err)
-		}
+		if rv == nil { rv = NewRuntimeConfig() }
+		blob, err := core.LoadFilenameMap(".")
+		if err != nil { log.Printf("[mod] unable to load JSON log files") }
+		if err := core.UpdateGitignore(blob); err != nil { log.Fatal(err) }
 	},
 }
 
@@ -80,58 +76,56 @@ var obfuscateCmd = &cobra.Command{
 	Use:   "obfuscate",
 	Short: "Obfuscate detected secrets in the codebase",
 	Run: func(cmd *cobra.Command, args []string) {
-		//if err := rv.runObfuscate(); err != nil {
-			//log.Fatal(err)
-		//}
+		if rv == nil { rv = NewRuntimeConfig() }
+		// Uncomment when implemented
+		// if err := rv.runObfuscate(); err != nil { log.Fatal(err) }
 	},
 }
 
 var addCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Scan before a git add",
-	Long:  "Couple GitAegis with git add to block commits containing secrets.",
+	Short: "Scan before git add",
 	Run: func(cmd *cobra.Command, args []string) {
+		if rv == nil { rv = NewRuntimeConfig() }
 		rv.LoggingEnabled, _ = cmd.Flags().GetBool("logging")
-		gitPath, err := os.Getwd()
-		if err != nil{
-			fmt.Errorf("[addCmd] unable to find home")
-		}
-		if err := rv.Add(gitPath, args...); err != nil {
-			log.Fatal(err)
-		}
+		gitPath, _ := os.Getwd()
+		if err := rv.Add(gitPath, args...); err != nil { log.Fatal(err) }
 	},
 }
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Integrate gitaegis to pre-hook or to bashrc",
-	Long:  "pre-hook require the correct root you need, bashrc require it existss",
+	Short: "Integrate GitAegis to pre-hook or bashrc",
 	Run: func(cmd *cobra.Command, args []string) {
-		root, err := os.Getwd()
-		if err != nil{
-			log.Println(err)
-		}
+		root, _ := os.Getwd()
 		preHook, _ := cmd.Flags().GetBool("prehook")
 		bash, _ := cmd.Flags().GetBool("bash")
 		if preHook && bash {
 			fmt.Println("Flags --prehook and --bash cannot be used together")
-		}else if bash{
+			return
+		} else if bash {
 			intro.AttachShellConfig()
-		}else{
+		} else {
 			intro.GitPreHookInit(root)
 		}
-
 	},
 }
 
+// Init_cmd registers commands and flags
 func Init_cmd() {
-	rootCmd.AddCommand(scanCmd)
+	rv = NewRuntimeConfig() // initialize first
+
+	// scan flags
 	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", 5.0, "Entropy threshold for secret detection")
-	scanCmd.Flags().Bool("logging", false, "log")
-	rootCmd.AddCommand(gitignoreCmd)
-	rootCmd.AddCommand(addCmd)
-	rootCmd.AddCommand(obfuscateCmd)
-	initCmd.Flags().Bool("prehook", false, "Integrate GitAegis as a git pre-hook")
+	scanCmd.Flags().Bool("logging", false, "Enable logging")
+
+	// init flags
+	initCmd.Flags().Bool("prehook", false, "Integrate GitAegis as git pre-hook")
 	initCmd.Flags().Bool("bash", false, "Integrate GitAegis into bashrc")
-	rootCmd.AddCommand(initCmd)
+
+	// register commands
+	rootCmd.AddCommand(scanCmd, gitignoreCmd, addCmd, obfuscateCmd, initCmd)
 }
+
+// RootCmd returns the root command for execution
+func RootCmd() *cobra.Command { return rootCmd }
