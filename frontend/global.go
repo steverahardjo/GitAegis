@@ -49,19 +49,16 @@ func (rv *RuntimeValue) SetTreeSitterPath(path string) {
 		return
 	}
 	rv.TreeSitterPath = path
-	fmt.Printf("[Config] TreeSitter path set to %s\n", path)
 }
 
 // SetUseGitignore toggles .gitignore usage
 func (rv *RuntimeValue) SetUseGitignore(enable bool) {
 	rv.UseGitignore = enable
-	fmt.Printf("[Config] Use .gitignore = %v\n", enable)
 }
 
 // SetEntropyLimit safely updates the entropy limit
 func (rv *RuntimeValue) SetEntropyLimit(limit float64) {
 	rv.EntropyLimit = limit
-	fmt.Printf("[Config] Entropy limit set to %.2f\n", limit)
 }
 
 // SetMaxFileSize updates the maximum file size limit (in KB)
@@ -70,7 +67,6 @@ func (rv *RuntimeValue) SetMaxFileSize(size int64) {
 		size = 500
 	}
 	rv.MaxFileSize = size
-	fmt.Printf("[Config] Max file size set to %d KB\n", size)
 }
 
 // SetFilters builds and applies regex + entropy filters

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"encoding/json"
 
 	toml "github.com/BurntSushi/toml"
 )
@@ -67,32 +68,35 @@ func LazyInitConfig() *Config {
 }
 // IntegrateConfig applies loaded configuration to global state
 func (c *Config) IntegrateConfig() {
-	if rv == nil {
-		return
-	}
-	if c.Logging {
-		rv.SetLogging(c.Logging)
-	}
-	if c.TreeSitterDir != "" {
-		rv.SetTreeSitterPath(c.TreeSitterDir)
-	}
-	rv.SetUseGitignore(c.UseGitignore)
-	if c.Filter.EntLimit > 0 {
-		rv.SetEntropyLimit(c.Filter.EntLimit)
-	}
-	if c.Filter.MaxFileSize > 0 {
-		rv.SetMaxFileSize(int64(c.Filter.MaxFileSize))
-	}
-	if len(c.Filter.TargetRegex) > 0 {
-		rv.SetFilters(c.Filter.TargetRegex)
-	}else{
-		fmt.Println("No config is found, use default of 5.0 entrophy limit")
-	}
+    
+    // --- ADDED: Print the loaded configuration ---
+    // Use json.MarshalIndent for a clean, readable printout
+    configData, err := json.MarshalIndent(c, "", "  ")
+    if err != nil {
+        log.Printf("[Config] Error marshaling config for printing: %v", err)
+    } else {
+        log.Printf("[Config] Applying loaded config:\n%s", string(configData))
+    }
+
+    if rv == nil {
+        return
+    }
+    if c.Logging {
+        rv.SetLogging(c.Logging)
+    }
+    if c.TreeSitterDir != "" {
+        rv.SetTreeSitterPath(c.TreeSitterDir)
+    }
+    rv.SetUseGitignore(c.UseGitignore)
+    if c.Filter.EntLimit > 0 {
+        rv.SetEntropyLimit(c.Filter.EntLimit)
+    }
+    if c.Filter.MaxFileSize > 0 {
+        rv.SetMaxFileSize(int64(c.Filter.MaxFileSize))
+    }
+    if len(c.Filter.TargetRegex) > 0 {
+        rv.SetFilters(c.Filter.TargetRegex)
+    } else {
+        fmt.Println("No config is found, use default of 5.0 entrophy limit")
+    }
 }
-
-
-
-
-
-
-

@@ -107,7 +107,7 @@ func checkAddGitignore(root string, filename string) error {
     }
     defer f.Close()
 
-    if _, err := f.WriteString(filename + "\n"); err != nil {
+    if _, err := f.WriteString("# Added by GitAegis\n"+filename + "\n"); err != nil {
         return err
     }
 

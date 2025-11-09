@@ -105,7 +105,7 @@ output_format = ["json", "txt"]
 use_gitignore = true
 
 [filter]
-ent_limit = 0.8
+ent_limit = 4.0
 max_file_size = 1024
 target_regex = { "go" = ".*\\.go$", "js" = ".*\\.js$" }
 ```

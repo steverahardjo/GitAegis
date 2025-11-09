@@ -7,5 +7,5 @@ GitAegis.exe
 aegis.config.toml
 # Added by goreleaser init:
 dist/
-.gitaegis.jsonl
 tests/
+.gitaegis.jsonl
