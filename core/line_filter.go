@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
-	"fmt"
 )
 
 type Payload map[string]string
