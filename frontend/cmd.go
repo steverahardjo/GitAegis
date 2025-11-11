@@ -112,7 +112,7 @@ var initCmd = &cobra.Command{
 
 // Init_cmd registers commands and flags
 func Init_cmd() {
-	rv = NewRuntimeConfig() // initialize first
+	rv = NewRuntimeConfig()
 
 	// scan flags
 	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", rv.EntropyLimit, "Entropy threshold for secret detection")
@@ -126,5 +126,4 @@ func Init_cmd() {
 	rootCmd.AddCommand(scanCmd, gitignoreCmd, addCmd, obfuscateCmd, initCmd)
 }
 
-// RootCmd returns the root command for execution
 func RootCmd() *cobra.Command { return rootCmd }
