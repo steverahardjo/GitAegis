@@ -15,10 +15,18 @@ var rv *RuntimeValue
 
 // Root command
 var rootCmd = &cobra.Command{
-	Use:   "gitaegis",
-	Short: "API key scanner in Go",
-	Long:  "Lightweight API key scanner using entropy and tree-sitter in Golang",
+    Use:   "gitaegis",
+    Short: "GitAegis CLI tool",
+    Run: func(cmd *cobra.Command, args []string) {
+        versionFlag, _ := cmd.Flags().GetBool("version")
+        if versionFlag {
+            fmt.Println("GitAegis version 1.0")
+            return
+        }
+        fmt.Println("Run 'gitaegis --help' for usage.")
+    },
 }
+
 
 // Scan command
 var scanCmd = &cobra.Command{
@@ -113,6 +121,8 @@ var initCmd = &cobra.Command{
 // Init_cmd registers commands and flags
 func Init_cmd() {
 	rv = NewRuntimeConfig()
+
+	rootCmd.Flags().BoolP("version", "v", false, "Show version information")
 
 	// scan flags
 	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", rv.EntropyLimit, "Entropy threshold for secret detection")
