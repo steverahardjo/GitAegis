@@ -79,15 +79,15 @@ var gitignoreCmd = &cobra.Command{
 	},
 }
 
-var obfuscateCmd = &cobra.Command{
-	Use:   "obfuscate",
-	Short: "Obfuscate detected secrets in the codebase",
-	Run: func(cmd *cobra.Command, args []string) {
-		if rv == nil { rv = NewRuntimeConfig() }
+//var obfuscateCmd = &cobra.Command{
+	//Use:   "obfuscate",
+	//Short: "Obfuscate detected secrets in the codebase",
+	//Run: func(cmd *cobra.Command, args []string) {
+		//if rv == nil { rv = NewRuntimeConfig() }
 		// Uncomment when implemented
 		// if err := rv.runObfuscate(); err != nil { log.Fatal(err) }
-	},
-}
+	//},
+//}
 
 var addCmd = &cobra.Command{
 	Use:   "add",
@@ -119,21 +119,18 @@ var initCmd = &cobra.Command{
 }
 
 // Init_cmd registers commands and flags
-func Init_cmd() {
-	rv = NewRuntimeConfig()
+func Init_cmd() *cobra.Command {
+    rv = NewRuntimeConfig()
 
-	rootCmd.Flags().BoolP("version", "v", false, "Show version information")
+    rootCmd.Flags().BoolP("version", "v", false, "Show version information")
 
-	// scan flags
-	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", rv.EntropyLimit, "Entropy threshold for secret detection")
-	scanCmd.Flags().Bool("logging", false, "Enable logging")
+    scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", rv.EntropyLimit, "Entropy threshold for secret detection")
+    scanCmd.Flags().Bool("logging", false, "Enable logging")
 
-	// init flags
-	initCmd.Flags().Bool("prehook", false, "Integrate GitAegis as git pre-hook")
-	initCmd.Flags().Bool("bash", false, "Integrate GitAegis into bashrc")
+    initCmd.Flags().Bool("prehook", false, "Integrate GitAegis as git pre-hook")
+    initCmd.Flags().Bool("bash", false, "Integrate GitAegis into bashrc")
 
-	// register commands
-	rootCmd.AddCommand(scanCmd, gitignoreCmd, addCmd, obfuscateCmd, initCmd)
+    rootCmd.AddCommand(scanCmd, gitignoreCmd, addCmd, initCmd)
+
+    return rootCmd
 }
-
-func RootCmd() *cobra.Command { return rootCmd }

@@ -55,10 +55,6 @@ func EnableGoBin() {
 }
 
 func main() {
-    frontend.Init_cmd()
-    EnableGoBin()
-    if err := frontend.RootCmd().Execute(); err != nil {
-        fmt.Println(err)
-        os.Exit(1)
-    }
+    root := frontend.Init_cmd()
+    root.Execute()
 }
