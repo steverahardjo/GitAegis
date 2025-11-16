@@ -122,3 +122,9 @@ Way to do it:
 
 ## License
 This project is licensed under the [MIT license](LICENSE)
+
+gh release create v1.0.0  \
+  --repo steverahardjo/GitAegis /home/holyknight101/Documents/Projects/Personal/GitAegis/gitaegis.zip\
+  --title "Release v1.0.0" \
+  --notes "New beta release, obfuscate in progress"
+

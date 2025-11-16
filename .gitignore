@@ -9,3 +9,5 @@ aegis.config.toml
 dist/
 tests/
 .gitaegis.jsonl
+gitaegis.zip
+gitaegis-2.0.0
