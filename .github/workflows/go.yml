@@ -25,10 +25,10 @@ jobs:
       - name: Build gitaegis for Linux ${{ matrix.arch }}
         run: |
           echo "Building gitaegis v0.0.2 for Linux ${{ matrix.arch }}..."
-          GOOS=linux GOARCH=${{ matrix.arch }} go build -v -o gitaegis-linux-${{ matrix.arch }} ./cmd/gitaegis
+          GOOS=linux GOARCH=${{ matrix.arch }} go build -v -o gitaegis-linux-${{ matrix.arch }} .
 
       - name: Upload executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: gitaegis-linux-${{ matrix.arch }}
           path: gitaegis-linux-${{ matrix.arch }}
