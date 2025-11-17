@@ -33,7 +33,7 @@ var DefaultExempt = []string{
 	"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json",
 	"yarn.lock", "go.sum", "deno.lock", "Cargo.lock",
 	".gitignore", ".python-version", "LICENSE", ".gitaegis.jsonl",
-	".git",
+	".git/",
 }
 
 // Init initializes ScanResult
