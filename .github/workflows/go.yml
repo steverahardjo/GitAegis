@@ -35,3 +35,12 @@ jobs:
 
       - name: Run tests
         run: go test -v ./...
+
+      - name: Create Release and upload artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v0.0.2
+          name: gitaegis v0.0.2 Linux ${{ matrix.arch }}
+          files: gitaegis-linux-${{ matrix.arch }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
