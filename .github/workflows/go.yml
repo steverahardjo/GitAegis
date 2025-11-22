@@ -33,9 +33,6 @@ jobs:
           name: gitaegis-linux-${{ matrix.arch }}
           path: gitaegis-linux-${{ matrix.arch }}
 
-      - name: Run tests
-        run: go test -v ./...
-
       - name: Create Release and upload artifact
         uses: softprops/action-gh-release@v1
         with:
@@ -44,3 +41,6 @@ jobs:
           files: gitaegis-linux-${{ matrix.arch }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run tests
+        run: go test -v ./...
