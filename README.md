@@ -19,7 +19,10 @@ It’s designed for simplicity, speed, and easy integration into existing Git wo
 Download
 
 ```bash
-curl -LJO "https://github.com/steverahardjo/GitAegis/releases/latest/download/gitaegis-linux-amd64"
+curl -L "https://github.com/steverahardjo/GitAegis/releases/latest/download/gitaegis-linux-amd64" -o /tmp/gitaegis && \
+chmod +x /tmp/gitaegis && \
+sudo mv /tmp/gitaegis /usr/local/bin/gitaegis
+
 
 ```
 
