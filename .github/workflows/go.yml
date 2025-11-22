@@ -2,7 +2,10 @@ name: Go CI/CD - gitaegis Linux Cross-Arch
 
 on:
   push:
+    # Only run on 'main' branch or when a tag is pushed (e.g., v0.0.1)
     branches: [ "main" ]
+    tags:
+      - 'v*.*.*'
   pull_request:
     branches: [ "main" ]
 
@@ -11,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [amd64]
-
+        arch: [amd64, arm64, arm]
+        
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,25 +25,32 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Build gitaegis for Linux ${{ matrix.arch }}
-        run: |
-          echo "Building gitaegis v0.0.2 for Linux ${{ matrix.arch }}..."
-          GOOS=linux GOARCH=${{ matrix.arch }} go build -v -o gitaegis-linux-${{ matrix.arch }} .
+      - name: Run tests
+        run: go test -v ./...
 
-      - name: Upload executable
+      - name: Build gitaegis for Linux ${{ matrix.arch }}
+        id: build_step # Added an ID to reference outputs
+        run: |
+          # Define the output filename based on the arch matrix
+          FILENAME="gitaegis-linux-${{ matrix.arch }}"
+          echo "Building gitaegis v0.0.2 for Linux ${{ matrix.arch }}..."
+          GOOS=linux GOARCH=${{ matrix.arch }} go build -v -o $FILENAME .
+          # Set the filename as an output for subsequent steps
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT 
+        shell: bash
+
+      - name: Upload executable artifact 
         uses: actions/upload-artifact@v4
         with:
           name: gitaegis-linux-${{ matrix.arch }}
-          path: gitaegis-linux-${{ matrix.arch }}
+          path: ${{ steps.build_step.outputs.filename }}
 
-      - name: Create Release and upload artifact
+      - name: Create or Update Release and Upload binaries 
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v0.0.2
-          name: gitaegis v0.0.2 Linux ${{ matrix.arch }}
-          files: gitaegis-linux-${{ matrix.arch }}
+          # Use the file path from the build step output
+          files: ${{ steps.build_step.outputs.filename }}
+          # The asset name will automatically be the file name
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run tests
-        run: go test -v ./...
