@@ -2,7 +2,7 @@
 go.sum
 .git
 .gitaegis
-GitAegis.exe
+gitaegis.exe
 .env
 aegis.config.toml
 # Added by goreleaser init:

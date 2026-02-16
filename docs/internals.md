@@ -1,4 +1,4 @@
-# GitAegis Internals
+# gitaegis Internals
 
 This is a Go CLI tool developed in **Golang**.  
 It is primarily used to scan folders or hook into `git add` to detect and manage potential secrets.

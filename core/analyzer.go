@@ -228,7 +228,7 @@ func (res *ScanResult) PrettyPrintResults() {
 	b.Grow(4096)
 
 	b.WriteString(yellow)
-	b.WriteString("GITAEGIS DETECTED THE FOLLOWING SECRETS\n")
+	b.WriteString("gitaegis DETECTED THE FOLLOWING SECRETS\n")
 	b.WriteString("=======================================\n")
 	b.WriteString(reset)
 

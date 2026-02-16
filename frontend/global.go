@@ -16,7 +16,7 @@ type RuntimeValue struct {
 	MaxFileSize    int64
 	TreeSitterPath string
 	Filters        core.LineFilter
-	GlobalResult core.ScanResult
+	GlobalResult   core.ScanResult
 }
 
 // NewRuntimeConfig initializes a RuntimeValue with default values

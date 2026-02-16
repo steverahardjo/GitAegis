@@ -1,6 +1,6 @@
-# GitAegis
+# gitaegis
 
-GitAegis helps developers maintain clean and secure repositories by scanning source code for potential API keys, tokens, or sensitive data before committing.
+gitaegis helps developers maintain clean and secure repositories by scanning source code for potential API keys, tokens, or sensitive data before committing.
 It’s designed for simplicity, speed, and easy integration into existing Git workflows.
 ## Features
 - Secret Detection: Identify API keys, tokens, and sensitive patterns using **Shannon Entrophy** and **Regular expression**.
@@ -19,7 +19,7 @@ It’s designed for simplicity, speed, and easy integration into existing Git wo
 Download
 
 ```bash
-curl -L "https://github.com/steverahardjo/GitAegis/releases/latest/download/gitaegis-linux-amd64" -o /tmp/gitaegis && \
+curl -L "https://github.com/steverahardjo/gitaegis/releases/latest/download/gitaegis-linux-amd64" -o /tmp/gitaegis && \
 chmod +x /tmp/gitaegis && \
 sudo mv /tmp/gitaegis /usr/local/bin/gitaegis
 
@@ -77,7 +77,7 @@ git commit
 ---
 
 ## Configuration Reference
-The `aegis.config.toml` file defines runtime behavior for GitAegis’ frontend scanning engine.  
+The `aegis.config.toml` file defines runtime behavior for gitaegis’ frontend scanning engine.  
 It controls logging, parser sources, output formats, and scanning filters.
 
 ### General Settings

@@ -3,15 +3,16 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"unsafe"
 	"sync"
-	"errors"
+	"unsafe"
+
 	"github.com/ebitengine/purego"
 	sitter "github.com/smacker/go-tree-sitter"
 )
@@ -26,8 +27,8 @@ var (
 	sitterInit    sync.Once
 	sitterInitErr error
 	SitterMap     *GrammarConfig
-	sitter_path string
-	langCache sync.Map
+	sitter_path   string
+	langCache     sync.Map
 )
 
 func IntegrateTreeSitter(homePath string) error {
@@ -61,10 +62,9 @@ func IntegrateTreeSitter(homePath string) error {
 	return sitterInitErr
 }
 
-
 // loadExtMap fetches and unmarshals the sitter.json file
 func loadExtMap() (*GrammarConfig, error) {
-	resp, err := http.Get("https://raw.githubusercontent.com/steverahardjo/GitAegis/cli-enabled/core/sitter.json")
+	resp, err := http.Get("https://raw.githubusercontent.com/steverahardjo/gitaegis/cli-enabled/core/sitter.json")
 	if err != nil {
 		return nil, fmt.Errorf("[TreeSitter] failed to read sitter.json: %w", err)
 	}
@@ -141,7 +141,6 @@ func initGrammar(filename string) *sitter.Parser {
 	return parser
 }
 
-
 // createTree parses a file and returns both the syntax tree and file content
 func CreateTree(filename string) (*sitter.Tree, []byte, error) {
 	parser := initGrammar(filename)
@@ -161,7 +160,7 @@ func CreateTree(filename string) (*sitter.Tree, []byte, error) {
 	return tree, data, nil
 }
 
-//Run a DFS to walk through the tree and get leaf node
+// Run a DFS to walk through the tree and get leaf node
 func walkParse(root *sitter.Node, filter LineFilter, code []byte) *CodeLine {
 	var lines []string
 	var indexes, columns []int

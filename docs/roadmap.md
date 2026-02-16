@@ -1,4 +1,4 @@
-# GitAegis Roadmap
+# gitaegis Roadmap
 
 ## Priority 1 — Core Correctness & Detection
 - [x] Fix bug in `Allfilters` boolean union  

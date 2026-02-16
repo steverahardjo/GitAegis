@@ -2,14 +2,14 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
-	"path"
-	"time"
-	"fmt"
-	"strings"
 	"os/user"
+	"path"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 type JsonMetadata struct {
@@ -20,11 +20,11 @@ type JsonMetadata struct {
 
 // Global struct for saving/loading
 type TopLevel struct {
-	Meta JsonMetadata            `json:"meta"`
-	Data map[string]CodeLine   `json:"data"`
+	Meta JsonMetadata        `json:"meta"`
+	Data map[string]CodeLine `json:"data"`
 }
 
-func (res *ScanResult)SaveFilenameMap(root string) error {
+func (res *ScanResult) SaveFilenameMap(root string) error {
 	filePath := filepath.Join(root, ".gitaegis.jsonl")
 
 	u, err := user.Current()
@@ -58,7 +58,7 @@ func (res *ScanResult)SaveFilenameMap(root string) error {
 	// Marshal with indentation
 	data, err := json.MarshalIndent(topLevel, "", "  ")
 	if err != nil {
-		
+
 		log.Printf("Unable to save into a jsonl for saveFilenamemap")
 		return err
 	}
@@ -68,7 +68,7 @@ func (res *ScanResult)SaveFilenameMap(root string) error {
 		return err
 	}
 	f.Sync()
-	
+
 	checkAddGitignore(root, ".gitaegis.jsonl")
 	return err
 }
@@ -90,31 +90,29 @@ func LoadFilenameMap(root string) (map[string]CodeLine, error) {
 }
 
 func checkAddGitignore(root string, filename string) error {
-    ignorePath := filepath.Join(root, ".gitignore")
-    var lines []string
-    if data, err := os.ReadFile(ignorePath); err == nil {
-        lines = strings.Split(string(data), "\n")
-        for _, line := range lines {
-            if strings.TrimSpace(line) == filename {
-                return nil
-            }
-        }
-    }
+	ignorePath := filepath.Join(root, ".gitignore")
+	var lines []string
+	if data, err := os.ReadFile(ignorePath); err == nil {
+		lines = strings.Split(string(data), "\n")
+		for _, line := range lines {
+			if strings.TrimSpace(line) == filename {
+				return nil
+			}
+		}
+	}
 
-    f, err := os.OpenFile(ignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-    if err != nil {
-        return err
-    }
-    defer f.Close()
+	f, err := os.OpenFile(ignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 
-    if _, err := f.WriteString("# Added by GitAegis\n"+filename + "\n"); err != nil {
-        return err
-    }
+	if _, err := f.WriteString("# Added by gitaegis\n" + filename + "\n"); err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
-
-
 
 // UpdateGitignore appends all saved file paths from the filename map into .gitignore.
 // It ensures that previously detected files are ignored in Git.
@@ -155,7 +153,7 @@ func obfuscatePerLine(filename string, line CodeLine) error {
 		return fmt.Errorf("line index %d out of range for file %s", line.Index, filename)
 	}
 
-	buf[line.Index] = "===== GitAegis detected a secret: OBFUSCATED ====="
+	buf[line.Index] = "===== gitaegis detected a secret: OBFUSCATED ====="
 	output := strings.Join(buf, "\n")
 	return os.WriteFile(filename, []byte(output), 0644)
 }
@@ -206,4 +204,4 @@ func undoObfuscate(root string) error {
 
 	return nil
 }
-	*/
+*/

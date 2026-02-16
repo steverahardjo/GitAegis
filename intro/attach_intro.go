@@ -21,6 +21,7 @@ function git() {
 }
 # <<< Git Aegis wrapper <<<
 `
+
 func AttachShellConfig() {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -63,7 +64,8 @@ func AttachShellConfig() {
 		fmt.Println("No .bashrc file found in home directory")
 	}
 }
-//enable gitaegis scan . as git hook based on  the flow
+
+// enable gitaegis scan . as git hook based on  the flow
 func GitPreHookInit(root string) error {
 	hooksDir := filepath.Join(root, ".git", "hooks")
 	if _, err := os.Stat(hooksDir); os.IsNotExist(err) {
@@ -79,7 +81,7 @@ echo "Running gitaegis scan..."
 gitaegis scan . 
 RESULT=$?
 if [ $RESULT -ne 0 ]; then
-  echo "GitAegis scan failed. Commit aborted."
+  echo "gitaegis scan failed. Commit aborted."
   exit 1
 fi
 `
@@ -88,6 +90,6 @@ fi
 		return fmt.Errorf("failed to write pre-commit hook: %v", err)
 	}
 
-	fmt.Println("GitAegis pre-commit hook installed successfully.")
+	fmt.Println("gitaegis pre-commit hook installed successfully.")
 	return nil
 }

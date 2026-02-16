@@ -2,9 +2,10 @@ package frontend
 
 import (
 	"fmt"
-	core "github.com/steverahardjo/GitAegis/core"
 	"path/filepath"
 	"time"
+
+	core "github.com/steverahardjo/gitaegis/core"
 )
 
 // Add will scan given paths and git-add them if no secrets are found.
@@ -35,7 +36,6 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 		projectPaths = []string{"."}
 	}
 
-
 	if rv.Result == nil {
 		rv.Result = &core.ScanResult{}
 	}
@@ -44,7 +44,7 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 	time.Sleep(1 * time.Second)
 	rv.SetTreeSitterPath("/home/holyknight101/.private/helix/runtime/grammars")
 	core.IntegrateTreeSitter(rv.TreeSitterPath)
-	filter:= core.AnyFilters(
+	filter := core.AnyFilters(
 		rv.Filters,
 		core.EntropyFilter(rv.EntropyLimit),
 	)
@@ -65,7 +65,7 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 		return true, fmt.Errorf("[runner.Scan] failed to resolve save path: %w", err)
 	}
 
-	if rv.LoggingEnabled &&  !res {
+	if rv.LoggingEnabled && !res {
 		if err := rv.Result.SaveFilenameMap(saveRoot); err != nil {
 			return true, fmt.Errorf("failed to save scan results: %w", err)
 		}
@@ -78,17 +78,17 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 // and performs the obfuscation via core.LoadObfuscation.
 func RunObfuscate() error {
 	/*
-	root, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-	
-	if err := core.LoadObfuscation(root); err != nil {
-		return fmt.Errorf("failed to obfuscate secrets: %w", err)
-	}
+		root, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get working directory: %w", err)
+		}
 
-	fmt.Println("Secrets obfuscated successfully.")
-	return nil
+		if err := core.LoadObfuscation(root); err != nil {
+			return fmt.Errorf("failed to obfuscate secrets: %w", err)
+		}
+
+		fmt.Println("Secrets obfuscated successfully.")
+		return nil
 	*/
 	return nil
 }
