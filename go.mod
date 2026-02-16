@@ -1,4 +1,4 @@
-module github.com/steverahardjo/GitAegis
+module github.com/steverahardjo/gitaegis
 
 go 1.24
 
