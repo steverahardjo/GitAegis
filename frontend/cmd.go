@@ -2,8 +2,8 @@ package frontend
 
 import (
 	"fmt"
-	core "github.com/steverahardjo/GitAegis/core"
-	intro "github.com/steverahardjo/GitAegis/intro"
+	core "github.com/steverahardjo/gitaegis/core"
+	intro "github.com/steverahardjo/gitaegis/intro"
 	"log"
 	"os"
 	"path/filepath"

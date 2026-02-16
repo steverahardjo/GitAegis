@@ -74,8 +74,8 @@ func GitPreHookInit(root string) error {
 
 	// Pre-commit hook content
 	hookContent := `#!/bin/sh
-# GitAegis pre-commit hook
-echo "Running GitAegis scan..."
+# gitaegis pre-commit hook
+echo "Running gitaegis scan..."
 gitaegis scan . 
 RESULT=$?
 if [ $RESULT -ne 0 ]; then

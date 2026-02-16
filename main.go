@@ -3,7 +3,7 @@ package main
 import (
     "fmt"
     "os"
-    frontend "github.com/steverahardjo/GitAegis/frontend"
+    frontend "github.com/steverahardjo/gitaegis/frontend"
     "os/exec"
     "path/filepath"
     "strings"

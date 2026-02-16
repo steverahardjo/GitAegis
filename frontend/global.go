@@ -3,7 +3,7 @@ package frontend
 import (
 	"fmt"
 
-	core "github.com/steverahardjo/GitAegis/core"
+	core "github.com/steverahardjo/gitaegis/core"
 )
 
 // RuntimeValue encapsulates the runtime configuration and state
