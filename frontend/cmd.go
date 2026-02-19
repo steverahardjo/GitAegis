@@ -60,7 +60,7 @@ var scanCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		if found {
-			fmt.Println("\nSecrets detected! Run `gitaegis obfuscate` to mask them.")
+			fmt.Println("\nSecrets detected!")
 		} else {
 			fmt.Println("\nNo secrets found.")
 		}
@@ -107,6 +107,14 @@ var addCmd = &cobra.Command{
 		if err := rv.Add(gitPath, args...); err != nil {
 			log.Fatal(err)
 		}
+	},
+}
+
+var uninstallCmd = &cobra.Command{
+	Use:"uninstall", 
+	Short: "Shortcut to uninstall GitAegis from your shell.",
+	Run: func(cmd *cobra.Command, args []string) {
+		UninstallSelf()
 	},
 }
 

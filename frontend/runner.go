@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
-
+	"os/exec"
+	"os"
+	"strings"
 	core "github.com/steverahardjo/gitaegis/core"
 )
 
@@ -91,4 +93,19 @@ func RunObfuscate() error {
 		return nil
 	*/
 	return nil
+}
+
+func UninstallSelf() error {
+	pathBytes, err := exec.Command("which", "gitaegis").Output()
+	if err != nil {
+		return fmt.Errorf("could not find gitaegis in PATH: %w", err)
+	}
+
+	binPath := strings.TrimSpace(string(pathBytes))
+
+	cleanCmd := "sed -i '' '/gitaegis/d' ~/.bashrc ~/.zshrc 2>/dev/null || true"
+	exec.Command("bash", "-c", cleanCmd).Run()
+
+	fmt.Printf("Deleting binary at: %s\n", binPath)
+	return os.Remove(binPath)
 }
