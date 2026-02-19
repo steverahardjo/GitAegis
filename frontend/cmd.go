@@ -18,6 +18,8 @@ var rv *RuntimeValue
 var rootCmd = &cobra.Command{
 	Use:   "gitaegis",
 	Short: "gitaegis CLI tool",
+	Long: "Scan recursively searches files for potential secrets like API keys, tokens, and credentials using entropy analysis and pattern matching.",
+
 	Run: func(cmd *cobra.Command, args []string) {
 		versionFlag, _ := cmd.Flags().GetBool("version")
 		if versionFlag {
@@ -30,9 +32,16 @@ var rootCmd = &cobra.Command{
 
 // Scan command
 var scanCmd = &cobra.Command{
-	Use:   "scan [path]",
-	Short: "Scan a directory or file for secrets",
-	Long:  "Scan a specified directory or file for secrets using entropy and regex for API keys. Defaults to current directory.",
+    Use:   "scan [path]",
+    Short: "Scan a directory or file for secrets",
+    Long: `Scan recursively searches files for potential secrets like API keys, 
+tokens, and credentials using entropy analysis and pattern matching.
+
+Examples:
+  gitaegis scan                    # Scan current directory
+  gitaegis scan ./src            # Scan specific path
+  gitaegis scan -e 4.5 ./config  # Custom entropy threshold`,
+    Example: "gitaegis scan -l -e 4.0 ./myapp",
 	Run: func(cmd *cobra.Command, args []string) {
 		if rv == nil {
 			rv = NewRuntimeConfig()
@@ -70,7 +79,7 @@ var scanCmd = &cobra.Command{
 // Other commands (gitignore, add, obfuscate, init)
 var gitignoreCmd = &cobra.Command{
 	Use:   "ignore",
-	Short: "Generate/update .gitignore from previous scan",
+	Short: "Generate/update .gitignore from previous scan.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if rv == nil {
 			rv = NewRuntimeConfig()
@@ -97,7 +106,7 @@ var gitignoreCmd = &cobra.Command{
 
 var addCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Scan before git add",
+	Short: "Scan before git add.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if rv == nil {
 			rv = NewRuntimeConfig()
@@ -143,12 +152,12 @@ func Init_cmd() *cobra.Command {
 	rootCmd.Flags().BoolP("version", "v", false, "Show version information")
 
 	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", rv.EntropyLimit, "Entropy threshold for secret detection")
-	scanCmd.Flags().Bool("logging", false, "Enable logging")
+	scanCmd.Flags().BoolP("logging","l", false, "Enable logging")
 
 	initCmd.Flags().Bool("prehook", false, "Integrate gitaegis as git pre-hook")
 	initCmd.Flags().Bool("bash", false, "Integrate gitaegis into bashrc")
 
-	rootCmd.AddCommand(scanCmd, gitignoreCmd, addCmd, initCmd)
+	rootCmd.AddCommand(scanCmd, gitignoreCmd, addCmd, initCmd, uninstallCmd)
 
 	return rootCmd
 }
