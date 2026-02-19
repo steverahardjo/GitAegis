@@ -33,7 +33,7 @@ var DefaultExempt = []string{
 	"uv.lock", "pyproject.toml", "pnpm-lock.yaml", "package-lock.json",
 	"yarn.lock", "go.sum", "deno.lock", "Cargo.lock",
 	".gitignore", ".python-version", "LICENSE", ".gitaegis.jsonl",
-	".git/",
+	".git/", "gitaegis/",
 }
 
 // Init initializes ScanResult
@@ -67,8 +67,17 @@ func initGitIgnore() *gitignore.GitIgnore {
 
 // isExempt checks if a filename is in exemptions
 func (res *ScanResult) isExempt(filename string) bool {
-	_, ok := res.exempt[filepath.Base(filename)]
-	return ok
+	base := filepath.Base(filename)
+	if _, ok := res.exempt[base]; ok {
+		return true
+	}
+	// Check for directory exemptions in the path
+	for exempt := range res.exempt {
+		if strings.Contains(filename, string(filepath.Separator)+exempt) || strings.HasPrefix(filename, exempt) {
+			return true
+		}
+	}
+	return false
 }
 
 // isExecutable checks if file is executable
