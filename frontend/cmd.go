@@ -2,7 +2,6 @@ package frontend
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -18,7 +17,7 @@ var rv *RuntimeValue
 var rootCmd = &cobra.Command{
 	Use:   "gitaegis",
 	Short: "gitaegis CLI tool",
-	Long: "Scan recursively searches files for potential secrets like API keys, tokens, and credentials using entropy analysis and pattern matching.",
+	Long:  "Scan recursively searches files for potential secrets like API keys, tokens, and credentials using entropy analysis and pattern matching.",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		versionFlag, _ := cmd.Flags().GetBool("version")
@@ -30,19 +29,12 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// Scan command
 var scanCmd = &cobra.Command{
-    Use:   "scan [path]",
-    Short: "Scan a directory or file for secrets",
-    Long: `Scan recursively searches files for potential secrets like API keys, 
-tokens, and credentials using entropy analysis and pattern matching.
-
-Examples:
-  gitaegis scan                    # Scan current directory
-  gitaegis scan ./src            # Scan specific path
-  gitaegis scan -e 4.5 ./config  # Custom entropy threshold`,
-    Example: "gitaegis scan -l -e 4.0 ./myapp",
-	Run: func(cmd *cobra.Command, args []string) {
+	Use:     "scan [path]",
+	Short:   "Scan a directory or file for secrets",
+	Long:    `Scan recursively searches files for potential secrets like API keys, tokens, and credentials using entropy analysis and pattern matching.`,
+	Example: "gitaegis scan -l -e 4.0 ./myapp",
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if rv == nil {
 			rv = NewRuntimeConfig()
 		}
@@ -53,7 +45,7 @@ Examples:
 		} else {
 			wd, err := os.Getwd()
 			if err != nil {
-				log.Fatal("Unable to get current working directory:", err)
+				return fmt.Errorf("unable to get current working directory: %w", err)
 			}
 			targetPath = wd
 		}
@@ -64,33 +56,36 @@ Examples:
 		absPath, _ := filepath.Abs(targetPath)
 		fmt.Println("START SCANNING...")
 		fmt.Println("Target path:", absPath)
+
 		found, err := rv.Scan(absPath)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("scan failed: %w", err)
 		}
+
 		if found {
 			fmt.Println("\nSecrets detected!")
-		} else {
-			fmt.Println("\nNo secrets found.")
+			os.Exit(1)
 		}
+		fmt.Println("\nNo secrets found.")
+		return nil
 	},
 }
 
-// Other commands (gitignore, add, obfuscate, init)
 var gitignoreCmd = &cobra.Command{
 	Use:   "ignore",
 	Short: "Generate/update .gitignore from previous scan.",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if rv == nil {
 			rv = NewRuntimeConfig()
 		}
 		blob, err := core.LoadFilenameMap(".")
 		if err != nil {
-			log.Printf("[mod] unable to load JSON log files")
+			return fmt.Errorf("unable to load scan results: %w", err)
 		}
 		if err := core.UpdateGitignore(blob); err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("failed to update .gitignore: %w", err)
 		}
+		return nil
 	},
 }
 
@@ -107,41 +102,44 @@ var gitignoreCmd = &cobra.Command{
 var addCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Scan before git add.",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if rv == nil {
 			rv = NewRuntimeConfig()
 		}
 		rv.LoggingEnabled, _ = cmd.Flags().GetBool("logging")
 		gitPath, _ := os.Getwd()
 		if err := rv.Add(gitPath, args...); err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("git add failed: %w", err)
 		}
+		return nil
 	},
 }
 
 var uninstallCmd = &cobra.Command{
-	Use:"uninstall", 
+	Use:   "uninstall",
 	Short: "Shortcut to uninstall GitAegis from your shell.",
-	Run: func(cmd *cobra.Command, args []string) {
-		UninstallSelf()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return UninstallSelf()
 	},
 }
 
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Integrate gitaegis to pre-hook or bashrc",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		root, _ := os.Getwd()
 		preHook, _ := cmd.Flags().GetBool("prehook")
 		bash, _ := cmd.Flags().GetBool("bash")
 		if preHook && bash {
-			fmt.Println("Flags --prehook and --bash cannot be used together")
-			return
+			return fmt.Errorf("flags --prehook and --bash cannot be used together")
 		} else if bash {
 			intro.AttachShellConfig()
 		} else {
-			intro.GitPreHookInit(root)
+			if err := intro.GitPreHookInit(root); err != nil {
+				return fmt.Errorf("failed to init pre-hook: %w", err)
+			}
 		}
+		return nil
 	},
 }
 
@@ -152,7 +150,7 @@ func Init_cmd() *cobra.Command {
 	rootCmd.Flags().BoolP("version", "v", false, "Show version information")
 
 	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", rv.EntropyLimit, "Entropy threshold for secret detection")
-	scanCmd.Flags().BoolP("logging","l", false, "Enable logging")
+	scanCmd.Flags().BoolP("logging", "l", false, "Enable logging")
 
 	initCmd.Flags().Bool("prehook", false, "Integrate gitaegis as git pre-hook")
 	initCmd.Flags().Bool("bash", false, "Integrate gitaegis into bashrc")

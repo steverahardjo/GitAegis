@@ -14,10 +14,14 @@ type Payload map[string]string
 // LineFilter returns a Payload and a boolean indicating if the line matched
 type LineFilter func(line string) (Payload, bool)
 
+// entropyParallelThreshold is the minimum string length to use parallel computation.
+// Below this threshold, goroutine spawning overhead exceeds parallelization benefit.
+const entropyParallelThreshold = 256
+
 // EntropyFilter returns lines whose entropy exceeds a threshold
 func EntropyFilter(threshold float64) LineFilter {
 	return func(s string) (Payload, bool) {
-		e:=CalcEntropyParallel(s)
+		e := CalcEntropy(s)
 		if e > threshold {
 			return Payload{
 				"entropy": strconv.FormatFloat(e, 'f', 4, 64),
@@ -125,8 +129,9 @@ func AllFilters(filters ...LineFilter) LineFilter {
 	}
 }
 
-// CalcEntropy computes Shannon entropy (single-threaded)
-func CalcEntropy(line string) float64 {
+// calcEntropySingle computes Shannon entropy using a single goroutine.
+// Use for short strings where parallel overhead exceeds benefit.
+func calcEntropySingle(line string) float64 {
 	freq := make(map[rune]float64)
 	for _, val := range line {
 		freq[val]++
@@ -146,8 +151,16 @@ func CalcEntropy(line string) float64 {
 	return entropy
 }
 
-// CalcEntropyParallel computes entropy using multiple CPU cores, output a float64 entrophy
-func CalcEntropyParallel(line string) float64 {
+// calcEntropyParallel computes Shannon entropy using multiple CPU cores.
+//
+// ⚠️  CAUTION: Only use for long strings (>= 256 bytes).
+// For short strings:
+//   - Goroutine spawning overhead exceeds parallelization benefit
+//   - Integer division causes chunkSize=0 when len(b) < numCPU
+//   - All workers send empty arrays, wasting CPU cycles
+//
+// Always call through CalcEntropy() which auto-selects the appropriate implementation.
+func calcEntropyParallel(line string) float64 {
 	b := []byte(line)
 	x := len(b)
 	if x == 0 {
@@ -207,4 +220,16 @@ func CalcEntropyParallel(line string) float64 {
 		return 0.0
 	}
 	return entropy
+}
+
+// CalcEntropy computes Shannon entropy, auto-selecting single-threaded or
+// parallel implementation based on input size.
+//
+// Uses parallel computation only for strings >= 256 bytes to avoid
+// goroutine overhead on short inputs.
+func CalcEntropy(line string) float64 {
+	if len(line) < entropyParallelThreshold {
+		return calcEntropySingle(line)
+	}
+	return calcEntropyParallel(line)
 }
