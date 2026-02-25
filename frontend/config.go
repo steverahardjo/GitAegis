@@ -17,6 +17,7 @@ type Config struct {
 	OutputFormat  []string `toml:"output_format"`
 	UseGitignore  bool     `toml:"use_gitignore"`
 	Filter        Filter   `toml:"filter"`
+	GitDiffOpt	  bool     `toml:gitdiff_opt`
 }
 
 // Filter section of the TOML config
@@ -84,6 +85,9 @@ func (c *Config) IntegrateConfig() {
     if c.Logging {
         rv.SetLogging(c.Logging)
     }
+	if c.GitDiffOpt{
+		rv.SetGitDiffOpt(true)
+	}
     if c.TreeSitterDir != "" {
         rv.SetTreeSitterPath(c.TreeSitterDir)
     }

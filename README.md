@@ -126,5 +126,5 @@ Way to do it:
 2. Create a new branch, commit, and push on said branch
 
 ## License
-This project is licensed under the [MIT license](LICENSE)
+This project is licensed under the [APACHE License](LICENSE)
 

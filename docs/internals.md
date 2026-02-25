@@ -19,8 +19,8 @@ Functions tying all core services together:
 - `Init()`: Initialize data structures (maps, exempted files list)  
 - `IterFolder()`: Iterate a folder using goroutines  
 - `PrettyPrintResult()`: Pretty-print detected results from `filenameMap`  
-- `IsFilenameMapEmpty()`: Check before triggering pretty print  
-
+- `IsFilenameMapEmpty()`: Check before triggering pretty print
+-  `IterFolderDiff()`: Go through the folder as a git diff result instead of whole file
 #### entro_parser
 Per-line parser used inside analyzer and scanning actions:
 - `LineFilter` struct: enables composition and inheritance for filters  

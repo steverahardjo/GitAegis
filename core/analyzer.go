@@ -174,6 +174,51 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore b
 	return nil
 }
 
+
+func (res *ScanResult) IterFiles(files []string, filter LineFilter, maxFileSize int64) error {
+	numWorkers := runtime.NumCPU()
+	fileCh := make(chan string, numWorkers*2)
+	var wg sync.WaitGroup
+
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for filename := range fileCh {
+				var lines *CodeLine
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("[core.analyzer] Recovered panic scanning %s: %v", filename, r)
+					}
+				}()
+
+				tree, code, err := CreateTree(filename)
+				if err != nil {
+					lines = res.PerLineScan(filename, filter)
+				} else {
+					lines = walkParse(tree.RootNode(), filter, code)
+				}
+
+				if lines != nil && len(lines.Lines) > 0 {
+					res.mutex.Lock()
+					res.filenameMap[filename] = *lines
+					res.mutex.Unlock()
+				}
+			}
+		}()
+	}
+
+	for _, f := range files {
+		info, err := os.Stat(f)
+		if err != nil || info.IsDir() || info.Size() > maxFileSize {
+			continue
+		}
+		fileCh <- f
+	}
+	close(fileCh)
+	wg.Wait()
+	return nil
+}
 // PerLineScan scans file line by line as a fallback
 func (res *ScanResult) PerLineScan(filename string, filter LineFilter) *CodeLine {
 	if filter == nil {

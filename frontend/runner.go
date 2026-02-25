@@ -51,8 +51,16 @@ func (rv *RuntimeValue) Scan(projectPaths ...string) (bool, error) {
 		core.EntropyFilter(rv.EntropyLimit),
 	)
 	for _, path := range projectPaths {
-		if err := rv.Result.IterFolder(path, filter, rv.UseGitignore, int64(rv.MaxFileSize)); err != nil {
-			return false, fmt.Errorf("scan failed for %s: %w", path, err)
+		if rv.GitDiffScan {
+			
+			files := core.GetUntrackedFile(path)
+			if err := rv.Result.IterFiles(files, filter, int64(rv.MaxFileSize)); err != nil {
+				return false, fmt.Errorf("scan failed for files in %s: %w", path, err)
+			}
+		} else {
+			if err := rv.Result.IterFolder(path, filter, rv.UseGitignore, int64(rv.MaxFileSize)); err != nil {
+				return false, fmt.Errorf("scan failed for %s: %w", path, err)
+			}
 		}
 	}
 	res := rv.Result.IsFilenameMapEmpty()

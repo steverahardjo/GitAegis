@@ -8,3 +8,5 @@ aegis.config.toml
 # Added by goreleaser init:
 dist/
 tests/
+# Added by gitaegis
+.gitaegis.jsonl

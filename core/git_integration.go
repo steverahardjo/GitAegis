@@ -1,9 +1,18 @@
 package core
 
 import (
-	git "github.com/go-git/go-git/v5"
+	"fmt"
 	"log"
+	"path/filepath"
+
+	git "github.com/go-git/go-git/v5"
 )
+
+type DiffMetadata struct{
+	filename string
+	start int
+	end int
+}
 
 func GitAdd(repoPath string, paths ...string) error {
 	repo, err := git.PlainOpen(repoPath)
@@ -23,6 +32,29 @@ func GitAdd(repoPath string, paths ...string) error {
 	return nil
 }
 
+func GitWorkingStatus(repoPath string) ([]string, error) {
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	wt, err := repo.Worktree()
+	if err != nil {
+		return nil, err
+	}
+
+	status, err := wt.Status()
+	if err != nil {
+		return nil, err
+	}
+
+	var files []string
+	for file := range status {
+		files = append(files, file)
+	}
+	fmt.Println(files)
+	return files, nil
+}
 
 func Init(path string) *git.Repository {
 	repo, err := git.PlainOpen(path)
@@ -49,14 +81,17 @@ func GetUntrackedFile(path string) []string {
 	}
 
 	for file, s := range status {
-		if s.Worktree == git.Untracked {
-			files = append(files, file)
+		absPath, err := filepath.Abs(filepath.Join(path, file))
+		if err != nil {
+			log.Printf("[go-git] failed to get absolute path for %s: %v", file, err)
+			continue
 		}
-		if s.Worktree == git.Modified{
-			files = append(files, file)
+
+		if s.Worktree == git.Untracked || s.Worktree == git.Modified {
+			fmt.Println("File in Status", file)
+			files = append(files, absPath)
 		}
 	}
 
 	return files
 }
-

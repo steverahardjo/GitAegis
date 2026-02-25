@@ -145,6 +145,20 @@ func TestRuntimeValue_SetLogging(t *testing.T) {
 	}
 }
 
+func TestRuntimeValue_SetGitDiffOpt(t *testing.T) {
+	rv := NewRuntimeConfig()
+
+	rv.SetGitDiffOpt(false)
+	if rv.GitDiffScan != false {
+		t.Error("SetGitDiffOpt(false) failed")
+	}
+
+	rv.SetGitDiffOpt(true)
+	if rv.GitDiffScan != true {
+		t.Error("SetGitDiffOpt(true) failed")
+	}
+}
+
 func TestRuntimeValue_SetTreeSitterPath(t *testing.T) {
 	rv := NewRuntimeConfig()
 

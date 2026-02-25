@@ -51,6 +51,8 @@ var scanCmd = &cobra.Command{
 		}
 
 		rv.LoggingEnabled, _ = cmd.Flags().GetBool("logging")
+		rv.GitDiffScan, _ = cmd. Flags().GetBool("git-opt")
+
 		LazyInitConfig()
 
 		absPath, _ := filepath.Abs(targetPath)
@@ -151,6 +153,7 @@ func Init_cmd() *cobra.Command {
 
 	scanCmd.Flags().Float64VarP(&rv.EntropyLimit, "ent_limit", "e", rv.EntropyLimit, "Entropy threshold for secret detection")
 	scanCmd.Flags().BoolP("logging", "l", false, "Enable logging")
+	scanCmd.Flags().BoolP("git-opt", "g", false, "Enable targeted parsing through changed current file")
 
 	initCmd.Flags().Bool("prehook", false, "Integrate gitaegis as git pre-hook")
 	initCmd.Flags().Bool("bash", false, "Integrate gitaegis into bashrc")

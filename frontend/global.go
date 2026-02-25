@@ -13,6 +13,7 @@ type RuntimeValue struct {
 	LoggingEnabled bool
 	GitIntegration bool
 	UseGitignore   bool
+	GitDiffScan		bool
 	MaxFileSize    int64
 	TreeSitterPath string
 	Filters        core.LineFilter
@@ -40,6 +41,15 @@ func (rv *RuntimeValue) SetLogging(enabled bool) {
 		fmt.Printf("[Config] Logging enabled\n")
 	} else {
 		fmt.Printf("[Config] Logging disabled\n")
+	}
+}
+
+func (rv *RuntimeValue) SetGitDiffOpt(enabled bool) {
+	rv.LoggingEnabled = enabled
+	if rv.LoggingEnabled {
+		fmt.Printf("[Config] Git Diff Optimization enabled\n")
+	} else {
+		fmt.Printf("[Config] Git Diff Optimization disabled\n")
 	}
 }
 
