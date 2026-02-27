@@ -15,6 +15,8 @@ logging = true
 treesitter_source = "/path/to/treesitter"
 output_format = ["json", "txt"]
 use_gitignore = true
+use_gitdiff = true
+
 
 [filter]
 ent_limit = 4.5
@@ -36,6 +38,9 @@ target_regex = { aws = "AKIA.*", github = "ghp_.*" }
 	}
 	if cfg.UseGitignore != true {
 		t.Error("expected use_gitignore = true")
+	}
+	if cfg.GitDiffOpt != true{
+		t.Error("expected use_gitdiff = true")
 	}
 	if cfg.Filter.EntLimit != 4.5 {
 		t.Errorf("expected ent_limit = 4.5, got %f", cfg.Filter.EntLimit)
@@ -79,6 +84,7 @@ func TestLoadConfig_Minimal(t *testing.T) {
 	content := `
 logging = false
 use_gitignore = false
+use_gitdiff = true
 
 [filter]
 ent_limit = 3.0
