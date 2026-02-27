@@ -45,7 +45,7 @@ func (rv *RuntimeValue) SetLogging(enabled bool) {
 }
 
 func (rv *RuntimeValue) SetGitDiffOpt(enabled bool) {
-	rv.LoggingEnabled = enabled
+	rv.GitDiffScan = enabled
 	if rv.LoggingEnabled {
 		fmt.Printf("[Config] Git Diff Optimization enabled\n")
 	} else {

@@ -37,6 +37,9 @@ git init
 #Run secret scan before committing
 gitaegis scan . --logging
 
+#Run secret scan, only the file processed by git status.
+gitaegis scan . -g
+
 
 #Write gitignore to based on the pre vious run result being saved in the logging
 gitaegis gitignore
@@ -88,6 +91,7 @@ It controls logging, parser sources, output formats, and scanning filters.
 | `treesitter_source` | `string` | Path to the local or vendored Tree-Sitter grammar sources. | `"path/to/treesitter"` |
 | `output_format` | `[]string` | Defines output formats for scan results. Supported: `json`, `txt`, `html`. | `["json", "txt"]` |
 | `use_gitignore` | `bool` | If true, excludes files listed in `.gitignore` during scanning. | `true` |
+| `git_diff_opt`  | `bool` | If true, only include file being available in `git status`      | `true` |
 
 ---
 

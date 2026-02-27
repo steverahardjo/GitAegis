@@ -8,12 +8,6 @@ import (
 	git "github.com/go-git/go-git/v5"
 )
 
-type DiffMetadata struct{
-	filename string
-	start int
-	end int
-}
-
 func GitAdd(repoPath string, paths ...string) error {
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
