@@ -2,11 +2,11 @@ name: Go CI/CD - gitaegis Linux Cross-Arch
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64]
-        
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,8 +22,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.24.5'
-
+          go-version: "1.24.5"
+      - name: Run go mod tidy
+        run: go mod tidy
+      - name: Run go lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout 5m
       - name: Run tests
         run: go test -v ./...
 
@@ -35,16 +41,16 @@ jobs:
           echo "Building gitaegis v0.0.2 for Linux ${{ matrix.arch }}..."
           GOOS=linux GOARCH=${{ matrix.arch }} go build -v -o $FILENAME .
           # Set the filename as an output for subsequent steps
-          echo "filename=$FILENAME" >> $GITHUB_OUTPUT 
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Upload executable artifact 
+      - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
           name: gitaegis-linux-${{ matrix.arch }}
           path: ${{ steps.build_step.outputs.filename }}
 
-      - name: Create or Update Release and Upload binaries 
+      - name: Create or Update Release and Upload binaries
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:

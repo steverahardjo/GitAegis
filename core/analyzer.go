@@ -174,7 +174,6 @@ func (res *ScanResult) IterFolder(root string, filter LineFilter, useGitIgnore b
 	return nil
 }
 
-
 func (res *ScanResult) IterFiles(files []string, filter LineFilter, maxFileSize int64) error {
 	numWorkers := runtime.NumCPU()
 	fileCh := make(chan string, numWorkers*2)
@@ -219,6 +218,7 @@ func (res *ScanResult) IterFiles(files []string, filter LineFilter, maxFileSize 
 	wg.Wait()
 	return nil
 }
+
 // PerLineScan scans file line by line as a fallback
 func (res *ScanResult) PerLineScan(filename string, filter LineFilter) *CodeLine {
 	if filter == nil {
